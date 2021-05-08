@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Game of Life</title>
+</head>
+
+<body>
+  <script type="module">
+    import init, { greet } from "./pkg/rust_wasm_gol.js";
+
+    init().then(() => {
+      greet("world!")
+    })
+  </script>
+</body>
+
+</html>
