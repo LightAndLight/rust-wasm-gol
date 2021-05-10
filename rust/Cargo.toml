@@ -5,7 +5,11 @@ authors = ["Isaac Elliott <isaace71295@gmail.com>"]
 edition = "2018"
 
 [lib]
-crate-type = ["cdylib"]
+name = "rust_wasm_gol"
+crate-type = ["lib", "cdylib"]
 
 [dependencies]
 wasm-bindgen = "0.2"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.0"

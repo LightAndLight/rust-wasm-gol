@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+cargo test
+wasm-pack test --mode no-install --chrome --headless
