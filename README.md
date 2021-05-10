@@ -5,8 +5,9 @@
 - [`rust-wasm-gol`](#rust-wasm-gol)
   - [Contents](#contents)
   - [About](#about)
-  - [Requirements](#requirements)
   - [Usage](#usage)
+    - [Development Build](#development-build)
+    - [Release Build](#release-build)
 
 ## About
 
@@ -17,12 +18,16 @@ and [https://rustwasm.github.io/docs/book/game-of-life/introduction.html](https:
 I aim to learn how to write Rust code that efficiently interoperates with 
 JavaScript via WebAssemply, and how to compile and distribute this code using Nix.
 
-## Requirements
-
-- A working Nix installation
-
 ## Usage
 
+### Development Build
+
 ```
-$ ./scripts/serve <PORT>
+$ nix-shell --run "./scripts/build_and_serve"
+```
+
+### Release Build
+
+```
+$ nix-shell -p python3 --run "./scripts/serve `nix-build --no-out-link` <PORT>"
 ```

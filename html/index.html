@@ -16,31 +16,12 @@
       align-items: center;
       justify-content: center;
     }
-
-    pre {
-      line-height: 0.583em;
-    }
   </style>
 </head>
 
 <body>
-  <pre id="gol-canvas"></pre>
-  <script type="module">
-    import init, { World } from "./pkg/rust_wasm_gol.js";
-
-    init().then(() => {
-      const pre = document.getElementById("gol-canvas");
-      const world = World.new();
-
-      const loop = () => {
-        pre.textContent = world.render();
-        world.tick();
-        requestAnimationFrame(loop)
-      };
-
-      requestAnimationFrame(loop);
-    })
-  </script>
+  <canvas id="gol-canvas"></canvas>
+  <script type="text/javascript" src="./index.js"></script>
 </body>
 
 </html>

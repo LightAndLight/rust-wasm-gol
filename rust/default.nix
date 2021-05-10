@@ -55,15 +55,14 @@ in pkgs.stdenv.mkDerivation {
     wasm-bindgen-cli
 
     binaryen
+      
+    (import ./scripts { inherit pkgs; })
   ];
   buildPhase = ''
-    echo "Running wasm-pack..."
-    wasm-pack build \
+    wasm_pack_build \
       ${if dev then "--dev" else ""} \
       ${if profiling then "--profiling" else ""} \
       ${if release then "--release" else ""} \
-      --mode no-install \
-      --target web \
       -- \
       --offline \
       --frozen
