@@ -60,6 +60,18 @@ impl World {
 
 #[wasm_bindgen]
 impl World {
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn data(&self) -> *const Cell {
+        self.data.as_ptr()
+    }
+
     pub fn tick(&mut self) {
         let mut next_data = self.data.clone();
 
