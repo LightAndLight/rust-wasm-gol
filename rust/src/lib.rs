@@ -17,6 +17,13 @@ pub struct World {
     data: Vec<Cell>,
 }
 
+#[wasm_bindgen]
+pub fn start(panic_hook: bool) {
+    if panic_hook {
+        console_error_panic_hook::set_once();
+    }
+}
+
 impl World {
     fn clear(&mut self) {
         self.data = (0..self.width * self.height).map(|_| Cell::Dead).collect();

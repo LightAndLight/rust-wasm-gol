@@ -1,7 +1,9 @@
 import { memory } from "../rust/pkg/rust_wasm_gol_bg.wasm";
 import("../rust/pkg/rust_wasm_gol.js").then(
   module => {
-    const { Cell, World } = module;
+    const { start, Cell, World } = module;
+
+    start(process.env.DEBUG);
 
     const CELL_SIZE = 5;
     const GRID_COLOR = "#CCCCCC";
