@@ -18,6 +18,10 @@ pub struct World {
 }
 
 impl World {
+    fn clear(&mut self) {
+        self.data = (0..self.width * self.height).map(|_| Cell::Dead).collect();
+    }
+
     fn get_index(&self, x: u32, y: u32) -> usize {
         (y * self.width + x) as usize
     }
@@ -56,6 +60,17 @@ impl World {
         }
         world
     }
+
+    pub fn get_cells(&self) -> &[Cell] {
+        &self.data
+    }
+
+    pub fn set_cells(&mut self, cells: &[(u32, u32)]) {
+        for (x, y) in cells.iter() {
+            let idx = self.get_index(*x, *y);
+            self.data[idx] = Cell::Alive;
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -66,6 +81,16 @@ impl World {
 
     pub fn height(&self) -> u32 {
         self.height
+    }
+
+    pub fn set_width(&mut self, width: u32) {
+        self.width = width;
+        self.clear();
+    }
+
+    pub fn set_height(&mut self, height: u32) {
+        self.height = height;
+        self.clear();
     }
 
     pub fn data(&self) -> *const Cell {

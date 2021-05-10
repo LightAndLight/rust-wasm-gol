@@ -7,7 +7,7 @@ let
     pkgs.stdenv.mkDerivation {
       name = "rust-wasm-gol-dependencies";
       CARGO_HOME = "/build/cargo";
-      src = pkgs.nix-gitignore.gitignoreSource ["default.nix"] ./.;
+      src = pkgs.nix-gitignore.gitignoreSource ["scripts" "default.nix"] ./.;
       buildInputs = with pkgs; [
         cacert
         rustChannel
@@ -22,13 +22,13 @@ let
       '';
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
-      outputHash = "0d0apxw5q5cxrgmr4jxw6nc215qph22v2lqh3xfxjw4lfjxn53vd";
+      outputHash = "12lsfg2d482sw5a83z5fgpbnbxbn32l9z5f0gydmdnhgg8mvphm4";
     };
 in pkgs.stdenv.mkDerivation {
   name = "rust-wasm-gol";
   CARGO_HOME = "/build/cargo";
   # RUST_LOG = "debug";
-  src = pkgs.nix-gitignore.gitignoreSource ["default.nix"] ./.;
+  src = pkgs.nix-gitignore.gitignoreSource ["scripts" "default.nix"] ./.;
   unpackPhase = ''
     unpackPhase
     cp -R ${dependencies}/cargo /build/cargo
@@ -68,8 +68,16 @@ in pkgs.stdenv.mkDerivation {
       --frozen
   '';
   doCheck = true;
+  checkInputs = with pkgs; [
+    chromium
+    chromedriver
+  ];
   checkPhase = ''
     cargo test
+
+    # I haven't been able to get browser tests going in Firefox. If you know how
+    # then please let me know
+    FONTCONFIG_PATH=${pkgs.fontconfig.out}/etc/fonts wasm_pack_test
   '';
   installPhase = ''
     mkdir -p $out
