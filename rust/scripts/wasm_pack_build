@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+    
+echo "Running wasm-pack..."
+wasm-pack build --mode no-install --target bundler "$@"

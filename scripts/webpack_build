@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+    
+echo "Running webpack..."
+webpack-cli build "$@"

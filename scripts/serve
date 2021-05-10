@@ -1,8 +1,7 @@
 #! /usr/bin/env bash
 set -euo pipefail
 
-port="$1"
+dir="$1"
+port="$2"
 
-dir=$(nix-build --no-out-link)
-
-nix-shell -p python3 --run "python3 -m http.server $port --directory $dir"
+python3 -m http.server "$port" --directory "$dir"
