@@ -2,6 +2,12 @@ use std::fmt;
 
 use wasm_bindgen::prelude::*;
 
+macro_rules! log {
+    ( $( $t:tt )* ) => {
+        web_sys::console::log_1(&format!( $( $t )* ).into());
+    }
+}
+
 #[wasm_bindgen]
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -19,6 +25,7 @@ pub struct World {
 
 #[wasm_bindgen]
 pub fn start(panic_hook: bool) {
+    log!("panic hook: {}", panic_hook);
     if panic_hook {
         console_error_panic_hook::set_once();
     }
