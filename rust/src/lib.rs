@@ -93,6 +93,38 @@ impl World {
             self.data[idx] = Cell::Alive;
         }
     }
+
+    pub fn tick(&mut self) {
+        let _timer = Timer::new("World::tick");
+
+        let mut next_data = {
+            let _timer = Timer::new("next_data");
+            self.data.clone()
+        };
+
+        {
+            let _timer = Timer::new("update next_data");
+
+            for y in 0..self.height {
+                for x in 0..self.width {
+                    let index = self.get_index(x, y);
+                    let count = self.live_neighbour_count(x, y);
+                    let next_cell = match self.data[index] {
+                        Cell::Alive if count < 2 => Cell::Dead,
+                        Cell::Alive if count > 3 => Cell::Dead,
+                        Cell::Dead if count == 3 => Cell::Alive,
+                        cell => cell,
+                    };
+                    next_data[index] = next_cell;
+                }
+            }
+        }
+
+        {
+            let _timer = Timer::new("free old cells");
+            self.data = next_data;
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -125,25 +157,8 @@ impl World {
         self.data.as_ptr()
     }
 
-    pub fn tick(&mut self) {
-        let _timer = Timer::new("World::tick");
-        let mut next_data = self.data.clone();
-
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let index = self.get_index(x, y);
-                let count = self.live_neighbour_count(x, y);
-                let next_cell = match self.data[index] {
-                    Cell::Alive if count < 2 => Cell::Dead,
-                    Cell::Alive if count > 3 => Cell::Dead,
-                    Cell::Dead if count == 3 => Cell::Alive,
-                    cell => cell,
-                };
-                next_data[index] = next_cell;
-            }
-        }
-
-        self.data = next_data;
+    pub fn tick_js(&mut self) {
+        self.tick();
     }
 
     pub fn new() -> World {

@@ -1,6 +1,6 @@
 { pkgs, dev ? false, profiling ? false, release ? true }:
 let
-  rustChannel = pkgs.latest.rustChannels.stable.rust.override {
+  rustChannel = pkgs.latest.rustChannels.nightly.rust.override {
     targets = ["wasm32-unknown-unknown"];
   };
   dependencies =

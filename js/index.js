@@ -154,7 +154,7 @@ import("../rust/pkg/rust_wasm_gol.js").then(
 
     const loop = () => {
       fps.render();
-      world.tick();
+      world.tick_js();
 
       drawGrid();
       drawCells();
