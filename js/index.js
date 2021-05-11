@@ -113,20 +113,37 @@ import("../rust/pkg/rust_wasm_gol.js").then(
 
       ctx.beginPath();
 
+      ctx.fillStyle = ALIVE_COLOR;
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const idx = getIndex(x, y);
 
-          ctx.fillStyle = cells[idx] === Cell.Dead
-            ? DEAD_COLOR
-            : ALIVE_COLOR;
+          if (cells[idx] === Cell.Alive) {
+            ctx.fillRect(
+              x * (CELL_SIZE + 1) + 1,
+              y * (CELL_SIZE + 1) + 1,
+              CELL_SIZE,
+              CELL_SIZE
+            );
 
-          ctx.fillRect(
-            x * (CELL_SIZE + 1) + 1,
-            y * (CELL_SIZE + 1) + 1,
-            CELL_SIZE,
-            CELL_SIZE
-          );
+          }
+        }
+      }
+
+      ctx.fillStyle = DEAD_COLOR;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = getIndex(x, y);
+
+          if (cells[idx] === Cell.Dead) {
+            ctx.fillRect(
+              x * (CELL_SIZE + 1) + 1,
+              y * (CELL_SIZE + 1) + 1,
+              CELL_SIZE,
+              CELL_SIZE
+            );
+
+          }
         }
       }
 
