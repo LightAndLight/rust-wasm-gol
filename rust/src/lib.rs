@@ -55,8 +55,19 @@ impl World {
                 if *x_offset == 0 && *y_offset == 0 {
                     continue;
                 } else {
-                    let neighbour_x = (x + x_offset) % self.width;
-                    let neighbour_y = (y + y_offset) % self.height;
+                    let raw_x = x + x_offset;
+                    let neighbour_x = if raw_x >= self.width {
+                        raw_x - self.width
+                    } else {
+                        raw_x
+                    };
+
+                    let raw_y = y + y_offset;
+                    let neighbour_y = if raw_y >= self.height {
+                        raw_y - self.height
+                    } else {
+                        raw_y
+                    };
                     let index = self.get_index(neighbour_x, neighbour_y);
                     count += self.data[index] as u8;
                 }
