@@ -1,13 +1,16 @@
-#![feature(test)]
+use criterion::{criterion_group, criterion_main, Criterion};
 
 extern crate rust_wasm_gol;
-extern crate test;
 
-#[bench]
-fn universe_ticks(b: &mut test::Bencher) {
+fn world(c: &mut Criterion) {
     let mut world = rust_wasm_gol::World::new();
 
-    b.iter(|| {
-        world.tick();
+    c.bench_function("World::tick", |b| {
+        b.iter(|| {
+            world.tick();
+        })
     });
 }
+
+criterion_group!(benches, world);
+criterion_main!(benches);

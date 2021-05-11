@@ -1,6 +1,6 @@
 { pkgs, dev ? false, profiling ? false, release ? true }:
 let
-  rustChannel = pkgs.latest.rustChannels.nightly.rust.override {
+  rustChannel = pkgs.latest.rustChannels.stable.rust.override {
     targets = ["wasm32-unknown-unknown"];
   };
   dependencies =
@@ -22,7 +22,7 @@ let
       '';
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
-      outputHash = "0sxd3n8jm2jkx2bhxv8kvhsmnn6x0xlfcjhjgsaczzcr54j7dlry";
+      outputHash = "0r6gkbvy624pvyljgxyyqj5nai947dc40nrcngg6a4y1slk2j787";
     };
 in pkgs.stdenv.mkDerivation {
   name = "rust-wasm-gol";
