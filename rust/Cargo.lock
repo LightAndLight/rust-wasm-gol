@@ -74,8 +74,10 @@ dependencies = [
 name = "rust-wasm-gol"
 version = "0.1.0"
 dependencies = [
+ "console_error_panic_hook",
  "wasm-bindgen",
  "wasm-bindgen-test",
+ "web-sys",
 ]
 
 [[package]]
