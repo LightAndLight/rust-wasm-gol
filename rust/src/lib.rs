@@ -1,6 +1,9 @@
 use std::fmt;
 
+use timer::Timer;
 use wasm_bindgen::prelude::*;
+
+mod timer;
 
 macro_rules! log {
     ( $( $t:tt )* ) => {
@@ -123,6 +126,7 @@ impl World {
     }
 
     pub fn tick(&mut self) {
+        let _timer = Timer::new("World::tick");
         let mut next_data = self.data.clone();
 
         for y in 0..self.height {
@@ -143,8 +147,8 @@ impl World {
     }
 
     pub fn new() -> World {
-        let width = 64;
-        let height = 64;
+        let width = 128;
+        let height = 128;
 
         let data = (0..width * height)
             .map(|i| {
