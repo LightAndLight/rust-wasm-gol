@@ -59,44 +59,28 @@ impl World {
 
         let mut count = 0;
 
-        let mut neighbor_x: u32 = x + self.width - 1;
-        let mut neighbor_y: u32 = y + self.height - 1;
-        count += self.data[self.get_index(
-            modulo(neighbor_x, self.width),
-            modulo(neighbor_y, self.height),
-        )] as u8;
+        /*
+        modulo(x + self.width - 1, self.width)
+        if (x + self.width - 1) >= self.width { (x + self.width - 1) - self.width } else { (x + self.width - 1) }
+        if (x + self.width - 1) >= self.width { x - 1 } else { x + self.width - 1 }
+        if (x - 1) >= 0 { x - 1 } else { x + self.width - 1 }
+        if x >= 1 { x - 1 } else { x + self.width - 1 }
+        */
+        let left = if x >= 1 { x - 1 } else { x + self.width - 1 };
+        let right = modulo(x + 1, self.width);
 
-        neighbor_x = x;
-        count += self.data[self.get_index(neighbor_x, modulo(neighbor_y, self.height))] as u8;
+        let top = if y >= 1 { y - 1 } else { y + self.height - 1 };
+        count += self.data[self.get_index(left, top)] as u8;
+        count += self.data[self.get_index(x, top)] as u8;
+        count += self.data[self.get_index(right, top)] as u8;
 
-        neighbor_x = x + 1;
-        count += self.data[self.get_index(
-            modulo(neighbor_x, self.width),
-            modulo(neighbor_y, self.height),
-        )] as u8;
+        count += self.data[self.get_index(left, y)] as u8;
+        count += self.data[self.get_index(right, y)] as u8;
 
-        neighbor_x = x + self.width - 1;
-        neighbor_y = y;
-        count += self.data[self.get_index(modulo(neighbor_x, self.width), neighbor_y)] as u8;
-
-        neighbor_x = x + 1;
-        count += self.data[self.get_index(modulo(neighbor_x, self.width), neighbor_y)] as u8;
-
-        neighbor_x = x + self.width - 1;
-        neighbor_y = y + 1;
-        count += self.data[self.get_index(
-            modulo(neighbor_x, self.width),
-            modulo(neighbor_y, self.height),
-        )] as u8;
-
-        neighbor_x = x;
-        count += self.data[self.get_index(neighbor_x, modulo(neighbor_y, self.height))] as u8;
-
-        neighbor_x = x + 1;
-        count += self.data[self.get_index(
-            modulo(neighbor_x, self.width),
-            modulo(neighbor_y, self.height),
-        )] as u8;
+        let bottom = modulo(y + 1, self.height);
+        count += self.data[self.get_index(left, bottom)] as u8;
+        count += self.data[self.get_index(x, bottom)] as u8;
+        count += self.data[self.get_index(right, bottom)] as u8;
 
         count
     }
