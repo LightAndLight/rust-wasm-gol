@@ -1,6 +1,9 @@
 use std::fmt;
 
+use timer::Timer;
 use wasm_bindgen::prelude::*;
+
+mod timer;
 
 macro_rules! log {
     ( $( $t:tt )* ) => {
@@ -30,6 +33,7 @@ pub struct World {
     width: u32,
     height: u32,
     data: Vec<Cell>,
+    next_data: Vec<Cell>,
 }
 
 #[wasm_bindgen]
@@ -45,20 +49,28 @@ impl World {
         (y * self.width + x) as usize
     }
 
-    fn live_neighbour_count(&self, x: u32, y: u32) -> u8 {
+    fn live_neighbour_count(
+        &self,
+        left: u32,
+        x: u32,
+        right: u32,
+        top: u32,
+        y: u32,
+        bottom: u32,
+    ) -> u8 {
         let mut count = 0;
-        for y_offset in [self.height - 1, 0, 1].iter() {
-            for x_offset in [self.width - 1, 0, 1].iter() {
-                if *x_offset == 0 && *y_offset == 0 {
-                    continue;
-                } else {
-                    let neighbour_x = (x + x_offset) % self.width;
-                    let neighbour_y = (y + y_offset) % self.height;
-                    let index = self.get_index(neighbour_x, neighbour_y);
-                    count += self.data[index] as u8;
-                }
-            }
-        }
+
+        count += self.data[self.get_index(left, top)] as u8;
+        count += self.data[self.get_index(x, top)] as u8;
+        count += self.data[self.get_index(right, top)] as u8;
+
+        count += self.data[self.get_index(left, y)] as u8;
+        count += self.data[self.get_index(right, y)] as u8;
+
+        count += self.data[self.get_index(left, bottom)] as u8;
+        count += self.data[self.get_index(x, bottom)] as u8;
+        count += self.data[self.get_index(right, bottom)] as u8;
+
         count
     }
 
@@ -67,10 +79,12 @@ impl World {
         let height = input.len() as u32;
         let width = if height > 0 { input[0].len() } else { 0 } as u32;
         let data = Vec::with_capacity((width * height) as usize);
+        let next_data = (0..width * height).map(|_| Cell::Dead).collect();
         let mut world = World {
             width,
             height,
             data,
+            next_data,
         };
         for y in 0..height {
             for x in 0..width {
@@ -88,6 +102,59 @@ impl World {
         for (x, y) in cells.iter() {
             let idx = self.get_index(*x, *y);
             self.data[idx] = Cell::Alive;
+        }
+    }
+
+    fn swap_buffers(&mut self) {
+        std::mem::swap(&mut self.data, &mut self.next_data);
+    }
+
+    pub fn tick(&mut self) {
+        let _timer = Timer::new("World::tick");
+
+        {
+            fn modulo(a: u32, max: u32) -> u32 {
+                if a >= max {
+                    a - max
+                } else {
+                    a
+                }
+            }
+
+            let _timer = Timer::new("update next_data");
+
+            for y in 0..self.height {
+                let top = if y >= 1 { y - 1 } else { y + self.height - 1 };
+                let bottom = modulo(y + 1, self.height);
+
+                for x in 0..self.width {
+                    let index = self.get_index(x, y);
+
+                    /*
+                    modulo(x + self.width - 1, self.width)
+                    if (x + self.width - 1) >= self.width { (x + self.width - 1) - self.width } else { (x + self.width - 1) }
+                    if (x + self.width - 1) >= self.width { x - 1 } else { x + self.width - 1 }
+                    if (x - 1) >= 0 { x - 1 } else { x + self.width - 1 }
+                    if x >= 1 { x - 1 } else { x + self.width - 1 }
+                    */
+                    let left = if x >= 1 { x - 1 } else { x + self.width - 1 };
+                    let right = modulo(x + 1, self.width);
+
+                    let count = self.live_neighbour_count(left, x, right, top, y, bottom);
+                    let next_cell = match self.data[index] {
+                        Cell::Alive if count < 2 => Cell::Dead,
+                        Cell::Alive if count > 3 => Cell::Dead,
+                        Cell::Dead if count == 3 => Cell::Alive,
+                        cell => cell,
+                    };
+                    self.next_data[index] = next_cell;
+                }
+            }
+        }
+
+        {
+            let _timer = Timer::new("free old cells");
+            self.swap_buffers();
         }
     }
 }
@@ -122,29 +189,13 @@ impl World {
         self.data.as_ptr()
     }
 
-    pub fn tick(&mut self) {
-        let mut next_data = self.data.clone();
-
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let index = self.get_index(x, y);
-                let count = self.live_neighbour_count(x, y);
-                let next_cell = match self.data[index] {
-                    Cell::Alive if count < 2 => Cell::Dead,
-                    Cell::Alive if count > 3 => Cell::Dead,
-                    Cell::Dead if count == 3 => Cell::Alive,
-                    cell => cell,
-                };
-                next_data[index] = next_cell;
-            }
-        }
-
-        self.data = next_data;
+    pub fn tick_js(&mut self) {
+        self.tick();
     }
 
     pub fn new() -> World {
-        let width = 64;
-        let height = 64;
+        let width = 128;
+        let height = 128;
 
         let data = (0..width * height)
             .map(|i| {
@@ -155,11 +206,13 @@ impl World {
                 }
             })
             .collect();
+        let next_data = (0..width * height).map(|_| Cell::Dead).collect();
 
         World {
             width,
             height,
             data,
+            next_data,
         }
     }
 
@@ -208,6 +261,6 @@ mod tests {
         ]);
         assert_eq!(world.data.len(), 9);
         assert_eq!(world.data[world.get_index(1, 1)], Alive);
-        assert_eq!(world.live_neighbour_count(1, 1), 0);
+        assert_eq!(world.live_neighbour_count(0, 1, 2, 0, 1, 2), 0);
     }
 }
