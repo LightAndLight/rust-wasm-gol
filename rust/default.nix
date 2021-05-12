@@ -66,6 +66,18 @@ in pkgs.stdenv.mkDerivation {
       -- \
       --offline \
       --frozen
+
+    ${if release 
+      then ''
+        mkdir unoptimised
+        mv pkg/*.wasm unoptimised
+        for file in $(find unoptimised/ -type f -name "*.wasm")
+        do
+          wasm-opt -Oz $file -o "pkg/$(basename $file)"
+        done
+      ''
+      else ""
+    }
   '';
   doCheck = true;
   checkInputs = with pkgs; [

@@ -12,6 +12,7 @@ in pkgs.stdenv.mkDerivation {
   '';
   
   buildInputs = with pkgs; [
+    binaryen
     nodePackages.npm
     nodePackages.webpack-cli
     
