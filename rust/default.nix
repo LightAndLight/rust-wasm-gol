@@ -22,7 +22,7 @@ let
       '';
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
-      outputHash = "0r6gkbvy624pvyljgxyyqj5nai947dc40nrcngg6a4y1slk2j787";
+      outputHash = "1yf8vgs0j05p0gclpz5j7mlqw65dhxgfcj6narhjqf4jibqpj2ps";
     };
 in pkgs.stdenv.mkDerivation {
   name = "rust-wasm-gol";

@@ -33,6 +33,7 @@ pub struct World {
     width: u32,
     height: u32,
     data: Vec<Cell>,
+    next_data: Vec<Cell>,
 }
 
 #[wasm_bindgen]
@@ -90,10 +91,12 @@ impl World {
         let height = input.len() as u32;
         let width = if height > 0 { input[0].len() } else { 0 } as u32;
         let data = Vec::with_capacity((width * height) as usize);
+        let next_data = (0..width * height).map(|_| Cell::Dead).collect();
         let mut world = World {
             width,
             height,
             data,
+            next_data,
         };
         for y in 0..height {
             for x in 0..width {
@@ -114,13 +117,12 @@ impl World {
         }
     }
 
+    fn swap_buffers(&mut self) {
+        std::mem::swap(&mut self.data, &mut self.next_data);
+    }
+
     pub fn tick(&mut self) {
         let _timer = Timer::new("World::tick");
-
-        let mut next_data = {
-            let _timer = Timer::new("next_data");
-            self.data.clone()
-        };
 
         {
             let _timer = Timer::new("update next_data");
@@ -135,14 +137,14 @@ impl World {
                         Cell::Dead if count == 3 => Cell::Alive,
                         cell => cell,
                     };
-                    next_data[index] = next_cell;
+                    self.next_data[index] = next_cell;
                 }
             }
         }
 
         {
             let _timer = Timer::new("free old cells");
-            self.data = next_data;
+            self.swap_buffers();
         }
     }
 }
@@ -194,11 +196,13 @@ impl World {
                 }
             })
             .collect();
+        let next_data = (0..width * height).map(|_| Cell::Dead).collect();
 
         World {
             width,
             height,
             data,
+            next_data,
         }
     }
 
