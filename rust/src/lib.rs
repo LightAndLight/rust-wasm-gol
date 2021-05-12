@@ -49,28 +49,17 @@ impl World {
         (y * self.width + x) as usize
     }
 
-    fn live_neighbour_count(&self, x: u32, y: u32) -> u8 {
-        fn modulo(a: u32, max: u32) -> u32 {
-            if a >= max {
-                a - max
-            } else {
-                a
-            }
-        }
-
+    fn live_neighbour_count(
+        &self,
+        left: u32,
+        x: u32,
+        right: u32,
+        top: u32,
+        y: u32,
+        bottom: u32,
+    ) -> u8 {
         let mut count = 0;
 
-        /*
-        modulo(x + self.width - 1, self.width)
-        if (x + self.width - 1) >= self.width { (x + self.width - 1) - self.width } else { (x + self.width - 1) }
-        if (x + self.width - 1) >= self.width { x - 1 } else { x + self.width - 1 }
-        if (x - 1) >= 0 { x - 1 } else { x + self.width - 1 }
-        if x >= 1 { x - 1 } else { x + self.width - 1 }
-        */
-        let left = if x >= 1 { x - 1 } else { x + self.width - 1 };
-        let right = modulo(x + 1, self.width);
-
-        let top = if y >= 1 { y - 1 } else { y + self.height - 1 };
         count += self.data[self.get_index(left, top)] as u8;
         count += self.data[self.get_index(x, top)] as u8;
         count += self.data[self.get_index(right, top)] as u8;
@@ -78,7 +67,6 @@ impl World {
         count += self.data[self.get_index(left, y)] as u8;
         count += self.data[self.get_index(right, y)] as u8;
 
-        let bottom = modulo(y + 1, self.height);
         count += self.data[self.get_index(left, bottom)] as u8;
         count += self.data[self.get_index(x, bottom)] as u8;
         count += self.data[self.get_index(right, bottom)] as u8;
@@ -125,12 +113,34 @@ impl World {
         let _timer = Timer::new("World::tick");
 
         {
+            fn modulo(a: u32, max: u32) -> u32 {
+                if a >= max {
+                    a - max
+                } else {
+                    a
+                }
+            }
+
             let _timer = Timer::new("update next_data");
 
             for y in 0..self.height {
+                let top = if y >= 1 { y - 1 } else { y + self.height - 1 };
+                let bottom = modulo(y + 1, self.height);
+
                 for x in 0..self.width {
                     let index = self.get_index(x, y);
-                    let count = self.live_neighbour_count(x, y);
+
+                    /*
+                    modulo(x + self.width - 1, self.width)
+                    if (x + self.width - 1) >= self.width { (x + self.width - 1) - self.width } else { (x + self.width - 1) }
+                    if (x + self.width - 1) >= self.width { x - 1 } else { x + self.width - 1 }
+                    if (x - 1) >= 0 { x - 1 } else { x + self.width - 1 }
+                    if x >= 1 { x - 1 } else { x + self.width - 1 }
+                    */
+                    let left = if x >= 1 { x - 1 } else { x + self.width - 1 };
+                    let right = modulo(x + 1, self.width);
+
+                    let count = self.live_neighbour_count(left, x, right, top, y, bottom);
                     let next_cell = match self.data[index] {
                         Cell::Alive if count < 2 => Cell::Dead,
                         Cell::Alive if count > 3 => Cell::Dead,
@@ -251,6 +261,6 @@ mod tests {
         ]);
         assert_eq!(world.data.len(), 9);
         assert_eq!(world.data[world.get_index(1, 1)], Alive);
-        assert_eq!(world.live_neighbour_count(1, 1), 0);
+        assert_eq!(world.live_neighbour_count(0, 1, 2, 0, 1, 2), 0);
     }
 }
