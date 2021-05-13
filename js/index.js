@@ -57,10 +57,8 @@ import("../rust/pkg/rust_wasm_gol.js").then(
     const width = world.width();
     const height = world.height();
 
-    const canvas = document.getElementById("gol-canvas");
-    canvas.width = (CELL_SIZE + 1) * width + 1;
-    canvas.height = (CELL_SIZE + 1) * height + 1;
-    canvas.addEventListener("click", event => {
+    const canvas2grid = (clientX, clientY) => {
+
       const boundingRect = canvas.getBoundingClientRect();
 
       const scaleX = canvas.width / boundingRect.width;
@@ -69,10 +67,18 @@ import("../rust/pkg/rust_wasm_gol.js").then(
       const xPx = (event.clientX - boundingRect.left) * scaleX;
       const yPx = (event.clientY - boundingRect.top) * scaleY;
 
-      const xCell = Math.min(Math.floor(xPx / (CELL_SIZE + 1)), width - 1);
-      const yCell = Math.min(Math.floor(yPx / (CELL_SIZE + 1)), height - 1);
+      return {
+        x: Math.min(Math.floor(xPx / (CELL_SIZE + 1)), width - 1),
+        y: Math.min(Math.floor(yPx / (CELL_SIZE + 1)), height - 1)
+      }
+    }
 
-      world.toggle_cell(xCell, yCell);
+    const canvas = document.getElementById("gol-canvas");
+    canvas.width = (CELL_SIZE + 1) * width + 1;
+    canvas.height = (CELL_SIZE + 1) * height + 1;
+    canvas.addEventListener("click", event => {
+      const { x, y } = canvas2grid(event.clientX, event.clientY);
+      world.toggle_cell(x, y);
       drawGrid();
       drawCells();
     })
@@ -150,42 +156,69 @@ import("../rust/pkg/rust_wasm_gol.js").then(
       ctx.stroke();
     };
 
-    let animationId = null;
+    var paused = false;
 
     const loop = () => {
       fps.render();
-      world.tick_js();
-
+      if (!paused) {
+        world.tick_js();
+      }
       drawGrid();
       drawCells();
 
-      animationId = requestAnimationFrame(loop)
-    };
-
-    const isPaused = () => {
-      return animationId === null;
+      requestAnimationFrame(loop)
     };
 
     const playPauseButton = document.getElementById("play-pause");
 
     const play = () => {
       playPauseButton.textContent = "⏸";
-      animationId = loop();
+      paused = false;
     };
 
     const pause = () => {
       playPauseButton.textContent = "▶";
-      cancelAnimationFrame(animationId);
-      animationId = null;
+      paused = true;
     };
 
     playPauseButton.addEventListener("click", _ => {
-      if (isPaused()) {
+      if (paused) {
         play();
       } else {
         pause();
       }
     });
+
+    var drawing = false;
+    var lastDrawn = null;
+    const draw = (clientX, clientY) => {
+      const { x, y } = canvas2grid(clientX, clientY);
+      if (lastDrawn == null || lastDrawn.x !== x || lastDrawn.y !== y) {
+        world.set_cell(x, y, Cell.Alive);
+        lastDrawn = { x, y };
+      }
+    };
+    canvas.addEventListener("mousedown", event => {
+      drawing = true;
+      draw(event.clientX, event.clientY);
+    });
+    canvas.addEventListener("mousemove", event => {
+      if (drawing) {
+        draw(event.clientX, event.clientY);
+      }
+    });
+
+    const stopDrawing = () => {
+      drawing = false;
+      lastDrawn = null;
+    };
+    canvas.addEventListener("mouseup", _ => {
+      stopDrawing();
+    });
+    canvas.addEventListener("mouseout", _ => {
+      stopDrawing();
+    });
+
 
     const resetButton = document.getElementById("reset");
 
@@ -198,5 +231,6 @@ import("../rust/pkg/rust_wasm_gol.js").then(
     });
 
     play();
+    loop();
   }
 )

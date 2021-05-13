@@ -4,10 +4,14 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     chromium
     chromedriver
+    wasm-bindgen-cli
     wasm-pack
     wabt
     nodePackages.npm
     nodePackages.webpack-cli
     python3
+    (pkgs.latest.rustChannels.stable.rust.override {
+      targets = ["wasm32-unknown-unknown"];
+    })
   ];
 }
