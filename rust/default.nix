@@ -22,7 +22,7 @@ let
       '';
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
-      outputHash = "1yf8vgs0j05p0gclpz5j7mlqw65dhxgfcj6narhjqf4jibqpj2ps";
+      outputHash = "0l0fj576rkbiza5bgwf09f9ndiww7bwjrbjn2pvbd7z279dlkwpw";
     };
 in pkgs.stdenv.mkDerivation {
   name = "rust-wasm-gol";
@@ -66,6 +66,18 @@ in pkgs.stdenv.mkDerivation {
       -- \
       --offline \
       --frozen
+
+    ${if release 
+      then ''
+        mkdir unoptimised
+        mv pkg/*.wasm unoptimised
+        for file in $(find unoptimised/ -type f -name "*.wasm")
+        do
+          wasm-opt -Oz $file -o "pkg/$(basename $file)"
+        done
+      ''
+      else ""
+    }
   '';
   doCheck = true;
   checkInputs = with pkgs; [
