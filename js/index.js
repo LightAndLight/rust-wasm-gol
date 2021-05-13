@@ -1,4 +1,5 @@
 import { memory } from "../rust/pkg/rust_wasm_gol_bg.wasm";
+import { createProgram, createShader, vertex, fragment } from "./shaders.js";
 
 const fps = new class {
   constructor() {
@@ -44,6 +45,7 @@ max of last 100 = ${Math.round(max)}
 
 import("../rust/pkg/rust_wasm_gol.js").then(
   module => {
+    /*
     const { start, Cell, World } = module;
 
     start(process.env.DEBUG);
@@ -56,8 +58,63 @@ import("../rust/pkg/rust_wasm_gol.js").then(
     const world = World.new();
     const width = world.width();
     const height = world.height();
+    */
 
     const canvas = document.getElementById("gol-canvas");
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+
+    const gl = canvas.getContext("webgl2");
+    if (!gl) {
+      console.log("failed to get webgl2 context");
+    }
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertex);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragment);
+    const program = createProgram(gl, vertexShader, fragmentShader);
+
+    const posBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+    const positions = [
+      0, 0,
+      0, 0.5,
+      0.7, 0,
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    const posAttributeLocation = gl.getAttribLocation(program, "pos");
+    gl.enableVertexAttribArray(posAttributeLocation);
+    const size = 2;
+    const type = gl.FLOAT;
+    const normalize = false;
+    const stride = 0;
+    var offset = 0;
+    gl.vertexAttribPointer(
+      posAttributeLocation,
+      size,
+      type,
+      normalize,
+      stride,
+      offset
+    )
+
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.useProgram(program);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    gl.bindVertexArray(vao);
+    const primitive = gl.TRIANGLES;
+    var offset = 0;
+    const count = 3;
+    gl.drawArrays(primitive, offset, count);
+
+    /*
     canvas.width = (CELL_SIZE + 1) * width + 1;
     canvas.height = (CELL_SIZE + 1) * height + 1;
     canvas.addEventListener("click", event => {
@@ -198,5 +255,6 @@ import("../rust/pkg/rust_wasm_gol.js").then(
     });
 
     play();
+    */
   }
 )
