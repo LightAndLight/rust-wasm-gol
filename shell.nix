@@ -10,5 +10,8 @@ pkgs.mkShell {
     nodePackages.npm
     nodePackages.webpack-cli
     python3
+    (pkgs.latest.rustChannels.stable.rust.override {
+      targets = ["wasm32-unknown-unknown"];
+    })
   ];
 }
