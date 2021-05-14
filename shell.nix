@@ -5,6 +5,7 @@ pkgs.mkShell {
     binaryen
     chromium
     chromedriver
+    wasm-bindgen-cli
     wasm-pack
     wabt
     nodePackages.npm
