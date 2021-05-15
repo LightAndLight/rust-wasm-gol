@@ -49,19 +49,31 @@ export class Program {
 
   use(callback) {
     this.gl.useProgram(this.program);
-    callback(new UsedProgram());
+    callback(new UsedProgram(this.gl));
     this.gl.useProgram(null);
   }
 
   getAttribLocation(location) {
     return this.gl.getAttribLocation(this.program, location);
   }
+
+  getUniformLocation(location) {
+    return this.gl.getUniformLocation(this.program, location);
+  }
 }
 
 export class UsedProgram {
-  constructor() { }
+  constructor(gl) { this.gl = gl; }
 
   assertUsedProgram() { }
+
+  uniform2f(location, x, y) {
+    this.gl.uniform2f(location, x, y);
+  }
+
+  uniform4f(location, x, y, z, w) {
+    this.gl.uniform4f(location, x, y, z, w);
+  }
 }
 
 export class VertexArrayObject {

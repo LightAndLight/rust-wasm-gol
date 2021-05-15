@@ -10,7 +10,6 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
 
   start(process.env.DEBUG);
 
-  const CELL_SIZE = 5;
   const GRID_COLOR = "#CCCCCC";
   const DEAD_COLOR = "#FFFFFF";
 
@@ -20,16 +19,17 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
 
   const canvas = document.getElementById("gol-canvas");
 
-  canvas.style.width = `${width * CELL_SIZE}px`;
-  canvas.style.height = `${height * CELL_SIZE}px`;
-  canvas.width = canvas.clientWidth;
-  canvas.height = canvas.clientHeight;
-
   const gl = canvas.getContext("webgl2");
   if (!gl) {
     console.log("failed to get webgl2 context");
   }
+
+  gl.canvas.width = canvas.clientWidth;
+  gl.canvas.height = canvas.clientHeight;
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+  const cell_width = gl.canvas.width / width;
+  const cell_height = gl.canvas.height / height;
 
   const vertexShader = new VertexShader(gl, vertex);
   const fragmentShader = new FragmentShader(gl, fragment);
@@ -37,21 +37,40 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
 
   const posBuffer = new Buffer(gl);
   const vao = new VertexArrayObject(gl);
-  const posAttributeLocation = program.getAttribLocation("pos");
+  const posLocation = program.getAttribLocation("pos");
+  const resolutionLocation = program.getUniformLocation("resolution");
+  const colorLocation = program.getUniformLocation("color");
 
+  var numLines = 0;
   vao.bind((boundVao) => {
     boundVao.enableVertexAttribArray(location);
     posBuffer.bindArrayBuffer((boundArrayBuffer) => {
-      const positions = [
-        0, 0,
-        0, 0.5,
-        0.7, 0,
-      ];
+      const top = 1;
+      const bottom = gl.canvas.height - 1;
+      const left = 1;
+      const right = gl.canvas.width - 1;
+
+      const positions = [];
+      // for (var y = top; y < bottom; y += CELL_SIZE) {
+      positions.push(left); positions.push(top); numLines++;
+      positions.push(right); positions.push(top); numLines++;
+
+      positions.push(left); positions.push(bottom); numLines++;
+      positions.push(right); positions.push(bottom); numLines++;
+      // }
+      // for (var x = left; x < right; x += CELL_SIZE) {
+      positions.push(left); positions.push(top); numLines++;
+      positions.push(left); positions.push(bottom); numLines++;
+
+      positions.push(right); positions.push(top); numLines++;
+      positions.push(right); positions.push(bottom); numLines++;
+      // }
+      console.log(positions);
       boundArrayBuffer.setData(
         new Float32Array(positions),
         gl.STATIC_DRAW
       );
-      boundVao.bindBufferToAttribute(boundArrayBuffer, posAttributeLocation, {
+      boundVao.bindBufferToAttribute(boundArrayBuffer, posLocation, {
         size: 2,
         type: gl.FLOAT,
         normalize: false,
@@ -64,18 +83,18 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
   clear(gl, 0, 0, 0, 0);
 
   program.use((currentProgram) => {
+    currentProgram.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
+    currentProgram.uniform4f(colorLocation, 0, 1, 0, 1);
     vao.bind((boundVao) => {
       drawArrays(gl, currentProgram, boundVao, {
-        primitive: gl.TRIANGLES,
+        primitive: gl.LINES,
         offset: 0,
-        count: 3
+        count: numLines
       });
     })
   })
 
   /*
-  canvas.width = (CELL_SIZE + 1) * width + 1;
-  canvas.height = (CELL_SIZE + 1) * height + 1;
   canvas.addEventListener("click", event => {
     const boundingRect = canvas.getBoundingClientRect();
   
