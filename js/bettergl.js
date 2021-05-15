@@ -1,5 +1,48 @@
+export class Shader {
+  constructor(gl, type, src) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    if (!success) {
+      console.log(gl.getShaderInfoLog(shader));
+      gl.deleteShader(shader);
+    }
+    this.gl = gl;
+    this.shader = shader;
+  }
+}
+
+export class VertexShader extends Shader {
+  constructor(gl, src) {
+    super(gl, gl.VERTEX_SHADER, src);
+  }
+
+  assertVertexShader() { }
+}
+
+export class FragmentShader extends Shader {
+  constructor(gl, src) {
+    super(gl, gl.FRAGMENT_SHADER, src);
+  }
+
+  assertFragmentShader() { }
+}
+
 export class Program {
-  constructor(gl, program) {
+  constructor(gl, vertexShader, fragmentShader) {
+    vertexShader.assertVertexShader();
+    fragmentShader.assertFragmentShader();
+
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader.shader);
+    gl.attachShader(program, fragmentShader.shader);
+    gl.linkProgram(program);
+    const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (!success) {
+      console.log(gl.getProgramInfoLog(program));
+    }
+
     this.gl = gl;
     this.program = program;
   }
