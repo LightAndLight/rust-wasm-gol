@@ -1,5 +1,6 @@
 import { memory } from "../rust/pkg/rust_wasm_gol_bg.wasm";
 import { createProgram, createShader, vertex, fragment } from "./shaders.js";
+import { Program, Buffer, VertexArrayObject, clear, drawArrays } from "./bettergl.js";
 
 const fps = new class {
   constructor() {
@@ -43,47 +44,6 @@ max of last 100 = ${Math.round(max)}
   }
 };
 
-const drawArrays = (gl, program, vao, primitive, offset, count) => {
-  gl.useProgram(program);
-  gl.bindVertexArray(vao);
-  gl.drawArrays(primitive, offset, count);
-  gl.bindVertexArray(null);
-  gl.useProgram(null);
-}
-
-const bindBufferToAttribute = (gl, vao, buffer, location, size, type, normalize, stride, offset) => {
-  gl.bindVertexArray(vao);
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.vertexAttribPointer(
-    location,
-    size,
-    type,
-    normalize,
-    stride,
-    offset
-  )
-  gl.bindBuffer(gl.ARRAY_BUFFER, null);
-  gl.bindVertexArray(null);
-}
-
-const setBufferData = (gl, type, buffer, data, info) => {
-  gl.bindBuffer(type, buffer);
-  gl.bufferData(type, data, gl.STATIC_DRAW);
-  gl.bindBuffer(type, null);
-
-}
-
-const enableVertexAttribArray = (gl, vao, location) => {
-  gl.bindVertexArray(vao);
-  gl.enableVertexAttribArray(location);
-  gl.bindVertexArray(null);
-}
-
-const clear = (gl, r, g, b, a) => {
-  gl.clearColor(0, 0, 0, 0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-}
-
 import("../rust/pkg/rust_wasm_gol.js").then(
   module => {
     /*
@@ -113,43 +73,45 @@ import("../rust/pkg/rust_wasm_gol.js").then(
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertex);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragment);
-    const program = createProgram(gl, vertexShader, fragmentShader);
+    const program = new Program(gl, createProgram(gl, vertexShader, fragmentShader));
 
-    const posBuffer = gl.createBuffer();
-    const positions = [
-      0, 0,
-      0, 0.5,
-      0.7, 0,
-    ];
-    setBufferData(gl, gl.ARRAY_BUFFER, posBuffer, new Float32Array(positions), gl.STATIC_DRAW)
+    const posBuffer = new Buffer(gl);
+    const vao = new VertexArrayObject(gl);
+    const posAttributeLocation = program.getAttribLocation("pos");
 
-    const vao = gl.createVertexArray();
-    const posAttributeLocation = gl.getAttribLocation(program, "pos");
-    enableVertexAttribArray(gl, vao, posAttributeLocation);
-
-    const size = 2;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    var offset = 0;
-    bindBufferToAttribute(
-      gl,
-      vao,
-      posBuffer,
-      posAttributeLocation,
-      size,
-      type,
-      normalize,
-      stride,
-      offset
-    );
+    vao.bind((boundVao) => {
+      boundVao.enableVertexAttribArray(location);
+      posBuffer.bindArrayBuffer((boundArrayBuffer) => {
+        const positions = [
+          0, 0,
+          0, 0.5,
+          0.7, 0,
+        ];
+        boundArrayBuffer.setData(
+          new Float32Array(positions),
+          gl.STATIC_DRAW
+        );
+        boundVao.bindBufferToAttribute(boundArrayBuffer, posAttributeLocation, {
+          size: 2,
+          type: gl.FLOAT,
+          normalize: false,
+          stride: 0,
+          offset: 0
+        });
+      });
+    });
 
     clear(gl, 0, 0, 0, 0);
 
-    const primitive = gl.TRIANGLES;
-    var offset = 0;
-    const count = 3;
-    drawArrays(gl, program, vao, primitive, offset, count)
+    program.use((currentProgram) => {
+      vao.bind((boundVao) => {
+        drawArrays(gl, currentProgram, boundVao, {
+          primitive: gl.TRIANGLES,
+          offset: 0,
+          count: 3
+        });
+      })
+    })
 
     /*
     canvas.width = (CELL_SIZE + 1) * width + 1;
