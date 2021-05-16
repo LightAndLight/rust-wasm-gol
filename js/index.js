@@ -46,27 +46,21 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
   vao.bind((boundVao) => {
     boundVao.enableVertexAttribArray(location);
     posBuffer.bindArrayBuffer((boundArrayBuffer) => {
-      const top = 1;
-      const bottom = gl.canvas.height - 1;
-      const left = 1;
-      const right = gl.canvas.width - 1;
+      const top = 0;
+      const bottom = gl.canvas.height;
+      const left = 0;
+      const right = gl.canvas.width;
 
       const positions = [];
-      // for (var y = top; y < bottom; y += CELL_SIZE) {
-      positions.push(left); positions.push(top); numLines++;
-      positions.push(right); positions.push(top); numLines++;
+      for (var y = top; y < gl.canvas.height + 1; y += cell_height) {
+        positions.push(left); positions.push(y); numLines++;
+        positions.push(right); positions.push(y); numLines++;
+      }
+      for (var x = left; x < gl.canvas.width + 1; x += cell_width) {
 
-      positions.push(left); positions.push(bottom); numLines++;
-      positions.push(right); positions.push(bottom); numLines++;
-      // }
-      // for (var x = left; x < right; x += CELL_SIZE) {
-      positions.push(left); positions.push(top); numLines++;
-      positions.push(left); positions.push(bottom); numLines++;
-
-      positions.push(right); positions.push(top); numLines++;
-      positions.push(right); positions.push(bottom); numLines++;
-      // }
-      console.log(positions);
+        positions.push(x); positions.push(top); numLines++;
+        positions.push(x); positions.push(bottom); numLines++;
+      }
       boundArrayBuffer.setData(
         new Float32Array(positions),
         gl.STATIC_DRAW
@@ -85,7 +79,7 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
 
   program.use((currentProgram) => {
     currentProgram.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
-    currentProgram.uniform4f(colorLocation, 0, 1, 0, 1);
+    currentProgram.uniform4f(colorLocation, 204 / 255, 204 / 255, 204 / 255, 1);
     vao.bind((boundVao) => {
       drawArrays(gl, currentProgram, boundVao, {
         primitive: gl.LINES,
