@@ -24,8 +24,9 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
     console.log("failed to get webgl2 context");
   }
 
-  gl.canvas.width = canvas.clientWidth;
-  gl.canvas.height = canvas.clientHeight;
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  gl.canvas.width = canvas.clientWidth * devicePixelRatio;
+  gl.canvas.height = canvas.clientHeight * devicePixelRatio;
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
   const cell_width = gl.canvas.width / width;
