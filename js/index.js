@@ -1,6 +1,6 @@
 // import { memory } from "../rust/pkg/rust_wasm_gol_bg.wasm";
 import { Fps } from "./fps.js";
-import { vertex, fragment } from "./shaders.js";
+import { ShaderProgram, gridVertex, gridFragment } from "./shaders.js";
 import { Program, Buffer, VertexArrayObject, clear, drawArrays, FragmentShader, VertexShader } from "./bettergl.js";
 
 const fps = new Fps();
@@ -32,15 +32,24 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
   const cell_width = gl.canvas.width / width;
   const cell_height = gl.canvas.height / height;
 
-  const vertexShader = new VertexShader(gl, vertex);
-  const fragmentShader = new FragmentShader(gl, fragment);
-  const program = new Program(gl, vertexShader, fragmentShader);
+  const gridProgram =
+    new Program(
+      gl,
+      new VertexShader(
+        gl,
+        (new ShaderProgram([gridVertex])).generate()
+      ),
+      new FragmentShader(
+        gl,
+        (new ShaderProgram([gridFragment])).generate()
+      )
+    );
 
   const posBuffer = new Buffer(gl);
   const vao = new VertexArrayObject(gl);
-  const posLocation = program.getAttribLocation("pos");
-  const resolutionLocation = program.getUniformLocation("resolution");
-  const colorLocation = program.getUniformLocation("color");
+  const posLocation = gridProgram.getAttribLocation("pos");
+  const resolutionLocation = gridProgram.getUniformLocation("resolution");
+  const colorLocation = gridProgram.getUniformLocation("color");
 
   var numLines = 0;
   vao.bind((boundVao) => {
@@ -77,7 +86,7 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
 
   clear(gl, 0, 0, 0, 0);
 
-  program.use((currentProgram) => {
+  gridProgram.use((currentProgram) => {
     currentProgram.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
     currentProgram.uniform4f(colorLocation, 204 / 255, 204 / 255, 204 / 255, 1);
     vao.bind((boundVao) => {
