@@ -65,12 +65,13 @@ export const gridVertex = new ShaderPart(
     screen2clip
   },
   `in vec2 pos;
+in vec2 offset;
 
 uniform vec2 resolution;
 
 void main() {
   vec2 clipSpace;
-  screen2clip(pos, resolution, clipSpace);
+  screen2clip(pos + offset, resolution, clipSpace);
   gl_Position = vec4(clipSpace, 0, 1);
 }`
 );
@@ -85,4 +86,36 @@ out vec4 outColor;
 
 void main() {
   outColor = color;
+}`);
+
+export const cellVertex = new ShaderPart(
+  {
+    screen2clip
+  },
+  `in vec2 pos;
+in vec2 offset;
+in vec3 colour;
+
+uniform vec2 resolution;
+
+out vec4 fragColour;
+
+void main() {
+  vec2 clipSpace;
+  screen2clip(pos + offset, resolution, clipSpace);
+  fragColour = vec4(colour, 1);
+  gl_Position = vec4(clipSpace, 0, 1);
+}`
+);
+
+export const cellFragment = new ShaderPart(
+  {},
+  `precision highp float;
+
+in vec4 fragColour;
+
+out vec4 outColor;
+
+void main() {
+  outColor = fragColour;
 }`);

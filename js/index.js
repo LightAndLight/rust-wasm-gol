@@ -1,12 +1,12 @@
-// import { memory } from "../rust/pkg/rust_wasm_gol_bg.wasm";
 import { Fps } from "./fps.js";
-import { ShaderProgram, gridVertex, gridFragment } from "./shaders.js";
-import { Program, Buffer, VertexArrayObject, clear, drawArrays, FragmentShader, VertexShader } from "./bettergl.js";
+import { ShaderProgram, cellVertex, cellFragment, gridVertex, gridFragment } from "./shaders.js";
+import { Program, Buffer, VertexArrayObject, clear, drawArrays, FragmentShader, VertexShader, drawArraysInstanced } from "./bettergl.js";
 
 const fps = new Fps();
 
-import("../rust/pkg/rust_wasm_gol.js").then(module => {
-  const { start, Cell, World } = module;
+(async function () {
+  const { start, Cell, World } = await import("../rust/pkg/rust_wasm_gol.js");
+  const { memory } = await import("../rust/pkg/rust_wasm_gol_bg.wasm");
 
   start(process.env.DEBUG);
 
@@ -19,62 +19,53 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
 
   const canvas = document.getElementById("gol-canvas");
 
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  const CELL_SIZE = 5;
+  const CANVAS_PIXELS = devicePixelRatio;
+  // width + 1 accounts for the 1px gridlines
+  // canvas.style.width = `${width * CELL_SIZE + width + 1}px`;
+  canvas.style.width = `${width * (CELL_SIZE + 1) + 1}px`;
+  // similarly for height
+  canvas.style.height = `${height * (CELL_SIZE + 1) + 1}px`;
+
   const gl = canvas.getContext("webgl2");
   if (!gl) {
     console.log("failed to get webgl2 context");
   }
 
-  const devicePixelRatio = window.devicePixelRatio || 1;
-  gl.canvas.width = canvas.clientWidth * devicePixelRatio;
-  gl.canvas.height = canvas.clientHeight * devicePixelRatio;
+  gl.canvas.width = canvas.clientWidth * CANVAS_PIXELS;
+  gl.canvas.height = canvas.clientHeight * CANVAS_PIXELS;
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-  const cell_width = gl.canvas.width / width;
-  const cell_height = gl.canvas.height / height;
 
   const gridProgram =
     new Program(
       gl,
-      new VertexShader(
-        gl,
-        (new ShaderProgram([gridVertex])).generate()
-      ),
-      new FragmentShader(
-        gl,
-        (new ShaderProgram([gridFragment])).generate()
-      )
+      new VertexShader(gl, (new ShaderProgram([gridVertex])).generate()),
+      new FragmentShader(gl, (new ShaderProgram([gridFragment])).generate())
     );
 
-  const posBuffer = new Buffer(gl);
-  const vao = new VertexArrayObject(gl);
   const posLocation = gridProgram.getAttribLocation("pos");
+  const offsetLocation = gridProgram.getAttribLocation("offset");
   const resolutionLocation = gridProgram.getUniformLocation("resolution");
   const colorLocation = gridProgram.getUniformLocation("color");
 
-  var numLines = 0;
-  vao.bind((boundVao) => {
-    boundVao.enableVertexAttribArray(location);
-    posBuffer.bindArrayBuffer((boundArrayBuffer) => {
-      const top = 0;
-      const bottom = gl.canvas.height;
-      const left = 0;
-      const right = gl.canvas.width;
+  const horizontalVao = new VertexArrayObject(gl);
+  horizontalVao.bind((boundVao) => {
+    boundVao.enableVertexAttribArray(posLocation);
+    boundVao.enableVertexAttribArray(offsetLocation);
 
-      const positions = [];
-      for (var y = top; y < gl.canvas.height + 1; y += cell_height) {
-        positions.push(left); positions.push(y); numLines++;
-        positions.push(right); positions.push(y); numLines++;
-      }
-      for (var x = left; x < gl.canvas.width + 1; x += cell_width) {
-
-        positions.push(x); positions.push(top); numLines++;
-        positions.push(x); positions.push(bottom); numLines++;
-      }
+    const horizontalVertexBuffer = new Buffer(gl);
+    horizontalVertexBuffer.bindArrayBuffer((boundArrayBuffer) => {
       boundArrayBuffer.setData(
-        new Float32Array(positions),
+        new Float32Array([
+          0, 0,
+          0, 1 * CANVAS_PIXELS,
+          gl.canvas.width, 0,
+          gl.canvas.width, 1 * CANVAS_PIXELS
+        ]),
         gl.STATIC_DRAW
       );
-      boundVao.bindBufferToAttribute(boundArrayBuffer, posLocation, {
+      boundVao.vertexAttribPointer(boundArrayBuffer, posLocation, {
         size: 2,
         type: gl.FLOAT,
         normalize: false,
@@ -82,21 +73,226 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
         offset: 0
       });
     });
+
+    const horizontalOffsetsBuffer = new Buffer(gl);
+    horizontalOffsetsBuffer.bindArrayBuffer((boundArrayBuffer) => {
+      var offsets = [];
+      for (var y = 0; y < gl.canvas.height; y += (CELL_SIZE + 1) * CANVAS_PIXELS) {
+        offsets.push(0, y);
+      }
+      console.assert(offsets.length / 2 === height + 1, offsets.height / 2);
+      boundArrayBuffer.setData(
+        new Float32Array(offsets),
+        gl.STATIC_DRAW
+      );
+      boundVao.vertexAttribPointer(boundArrayBuffer, offsetLocation, {
+        size: 2,
+        type: gl.FLOAT,
+        normalize: false,
+        stride: 0,
+        offset: 0
+      });
+      boundVao.vertexAttribDivisor(offsetLocation, 1);
+    });
+  });
+
+  const verticalVao = new VertexArrayObject(gl);
+  verticalVao.bind((boundVao) => {
+    boundVao.enableVertexAttribArray(posLocation);
+    boundVao.enableVertexAttribArray(offsetLocation);
+
+    const verticalVertexBuffer = new Buffer(gl);
+    verticalVertexBuffer.bindArrayBuffer((boundArrayBuffer) => {
+      boundArrayBuffer.setData(
+        new Float32Array([
+          0, 0,
+          1 * CANVAS_PIXELS, 0,
+          0, gl.canvas.height,
+          1 * CANVAS_PIXELS, gl.canvas.height
+        ]),
+        gl.STATIC_DRAW
+      );
+      boundVao.vertexAttribPointer(boundArrayBuffer, posLocation, {
+        size: 2,
+        type: gl.FLOAT,
+        normalize: false,
+        stride: 0,
+        offset: 0
+      });
+    });
+
+    const verticalOffsetsBuffer = new Buffer(gl);
+    verticalOffsetsBuffer.bindArrayBuffer((boundArrayBuffer) => {
+      var offsets = [];
+      for (var x = 0; x < gl.canvas.width; x += (CELL_SIZE + 1) * CANVAS_PIXELS) {
+        offsets.push(x, 0);
+      }
+      console.assert(offsets.length / 2 === width + 1, offsets.length / 2);
+      boundArrayBuffer.setData(
+        new Float32Array(offsets),
+        gl.STATIC_DRAW
+      );
+      boundVao.vertexAttribPointer(boundArrayBuffer, offsetLocation, {
+        size: 2,
+        type: gl.FLOAT,
+        normalize: false,
+        stride: 0,
+        offset: 0
+      });
+      boundVao.vertexAttribDivisor(offsetLocation, 1);
+    });
+  });
+
+  const cellProgram =
+    new Program(
+      gl,
+      new VertexShader(gl, (new ShaderProgram([cellVertex])).generate()),
+      new FragmentShader(gl, (new ShaderProgram([cellFragment])).generate())
+    );
+
+  const cellResolutionLocation = cellProgram.getUniformLocation("resolution");
+
+  const cellsVao = new VertexArrayObject(gl);
+  const cellColoursBuffer = new Buffer(gl);
+
+  cellsVao.bind((boundVao) => {
+    const cellPosLocation = cellProgram.getAttribLocation("pos");
+    boundVao.enableVertexAttribArray(cellPosLocation);
+
+    const cellVertexBuffer = new Buffer(gl);
+    cellVertexBuffer.bindArrayBuffer((boundArrayBuffer) => {
+      boundArrayBuffer.setData(
+        new Float32Array([
+          0, 0,
+          0, CELL_SIZE * CANVAS_PIXELS,
+          CELL_SIZE * CANVAS_PIXELS, 0,
+          CELL_SIZE * CANVAS_PIXELS, CELL_SIZE * CANVAS_PIXELS
+        ]),
+        gl.STATIC_DRAW
+      )
+      boundVao.vertexAttribPointer(boundArrayBuffer, cellPosLocation, {
+        size: 2,
+        type: gl.FLOAT,
+        normalize: false,
+        stride: 0,
+        offset: 0
+      });
+    })
+
+    const cellOffsetLocation = cellProgram.getAttribLocation("offset");
+    boundVao.enableVertexAttribArray(cellOffsetLocation);
+    boundVao.vertexAttribDivisor(cellOffsetLocation, 1);
+
+    const cellOffsetBuffer = new Buffer(gl);
+    cellOffsetBuffer.bindArrayBuffer((boundArrayBuffer) => {
+      var offsets = [];
+      // the squares begin at (1, 1) because we don't want to draw them on top
+      // of the grid lines
+      // also, after adding CELL_SIZE, the offset would intersect
+      // with a 1px-width line. so we add `CELL_SIZE + 1` to jump
+      // over the gridline
+      for (var y = 1 * CANVAS_PIXELS; y < gl.canvas.height; y += (CELL_SIZE + 1) * CANVAS_PIXELS) {
+        for (var x = 1 * CANVAS_PIXELS; x < gl.canvas.width; x += (CELL_SIZE + 1) * CANVAS_PIXELS) {
+          offsets.push(x, y);
+        }
+      }
+      console.assert(offsets.length / 2 === width * height, offsets.length / 2);
+
+      boundArrayBuffer.setData(
+        new Float32Array(offsets),
+        gl.STATIC_DRAW
+      )
+      boundVao.vertexAttribPointer(boundArrayBuffer, cellOffsetLocation, {
+        size: 2,
+        type: gl.FLOAT,
+        normalize: false,
+        stride: 0,
+        offset: 0
+      });
+    })
+
+    const cellColourLocation = cellProgram.getAttribLocation("colour");
+    boundVao.enableVertexAttribArray(cellColourLocation);
+    boundVao.vertexAttribDivisor(cellColourLocation, 1);
+
+    cellColoursBuffer.bindArrayBuffer((boundArrayBuffer) => {
+      boundArrayBuffer.setData(
+        new Float32Array(width * height * 3),
+        gl.DYNAMIC_DRAW
+      );
+      boundVao.vertexAttribPointer(boundArrayBuffer, cellColourLocation, {
+        size: 3,
+        type: gl.FLOAT,
+        normalize: false,
+        stride: 0,
+        offset: 0
+      })
+    })
   });
 
   clear(gl, 0, 0, 0, 0);
 
+  const getIndex = (x, y) => {
+    return y * width + x;
+  };
+
+  const cells = new Uint8Array(memory.buffer, world.data(), width * height);
+
+  var cellColours = [];
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      if (cells[getIndex(x, y)] == Cell.Alive) {
+        cellColours.push(1, 1, 1);
+      } else {
+        cellColours.push(0, 0, 0);
+      }
+    }
+  }
+
+  cellColoursBuffer.bindArrayBuffer((boundArrayBuffer) => {
+    boundArrayBuffer.bufferSubData({
+      dstByteOffset: 0,
+      srcData: new Float32Array(cellColours),
+      srcOffset: 0,
+      length: cellColours.length
+    });
+  });
+
   gridProgram.use((currentProgram) => {
     currentProgram.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
     currentProgram.uniform4f(colorLocation, 204 / 255, 204 / 255, 204 / 255, 1);
-    vao.bind((boundVao) => {
-      drawArrays(gl, currentProgram, boundVao, {
-        primitive: gl.LINES,
+
+    horizontalVao.bind((boundVao) => {
+      drawArraysInstanced(gl, currentProgram, boundVao, {
+        primitive: gl.TRIANGLE_STRIP,
         offset: 0,
-        count: numLines
+        count: 4,
+        instanceCount: height + 1
+      });
+    });
+
+    verticalVao.bind((boundVao) => {
+      drawArraysInstanced(gl, currentProgram, boundVao, {
+        primitive: gl.TRIANGLE_STRIP,
+        offset: 0,
+        count: 4,
+        instanceCount: width + 1
+      });
+    });
+  });
+
+  cellProgram.use((currentProgram) => {
+    currentProgram.uniform2f(cellResolutionLocation, gl.canvas.width, gl.canvas.height);
+
+    cellsVao.bind((boundVao) => {
+      drawArraysInstanced(gl, currentProgram, boundVao, {
+        primitive: gl.TRIANGLE_STRIP,
+        first: 0,
+        count: 4,
+        instanceCount: width * height
       });
     })
-  })
+  });
 
   /*
   canvas.addEventListener("click", event => {
@@ -140,10 +336,6 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
     }
   
     ctx.stroke();
-  };
-  
-  const getIndex = (x, y) => {
-    return y * width + x;
   };
   
   const drawCells = () => {
@@ -239,4 +431,4 @@ import("../rust/pkg/rust_wasm_gol.js").then(module => {
   play();
   */
 
-});
+})();

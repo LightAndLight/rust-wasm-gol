@@ -53,8 +53,8 @@ export class Program {
     this.gl.useProgram(null);
   }
 
-  getAttribLocation(location) {
-    return this.gl.getAttribLocation(this.program, location);
+  getAttribLocation(locationName) {
+    return this.gl.getAttribLocation(this.program, locationName);
   }
 
   getUniformLocation(location) {
@@ -79,7 +79,7 @@ export class UsedProgram {
 export class VertexArrayObject {
   constructor(gl) { this.gl = gl; this.vao = gl.createVertexArray(); }
   bind(callback) {
-    this.gl.bindVertexArray(this.val);
+    this.gl.bindVertexArray(this.vao);
     callback(new BoundVertexArrayObject(this.gl));
     this.gl.bindVertexArray(null);
   }
@@ -94,7 +94,7 @@ class BoundVertexArrayObject {
     this.gl.enableVertexAttribArray(location);
   }
 
-  bindBufferToAttribute(buffer, location, { size, type, normalize, stride, offset }) {
+  vertexAttribPointer(buffer, location, { size, type, normalize, stride, offset }) {
     buffer.assertBoundArrayBuffer();
     this.gl.vertexAttribPointer(
       location,
@@ -105,12 +105,22 @@ class BoundVertexArrayObject {
       offset
     )
   }
+
+  vertexAttribDivisor(location, divisor) {
+    this.gl.vertexAttribDivisor(location, divisor)
+  }
 }
 
 export const drawArrays = (gl, program, vao, { primitive, offset, count }) => {
   program.assertUsedProgram();
   vao.assertBoundVertexArrayObject();
   gl.drawArrays(primitive, offset, count);
+}
+
+export const drawArraysInstanced = (gl, program, vao, { primitive, offset, count, instanceCount }) => {
+  program.assertUsedProgram();
+  vao.assertBoundVertexArrayObject();
+  gl.drawArraysInstanced(primitive, offset, count, instanceCount)
 }
 
 export class Buffer {
@@ -123,11 +133,15 @@ export class Buffer {
 }
 
 class BoundArrayBuffer {
-  constructor(gl, type) { this.gl = gl; this.type = type; }
+  constructor(gl) { this.gl = gl; this.type = gl.ARRAY_BUFFER; }
   assertBoundArrayBuffer() { }
 
   setData(data, info) {
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, data, info);
+    this.gl.bufferData(this.type, data, info);
+  }
+
+  bufferSubData({ dstByteOffset, srcData, srcOffset, length }) {
+    this.gl.bufferSubData(this.type, dstByteOffset, srcData, srcOffset, length)
   }
 }
 
