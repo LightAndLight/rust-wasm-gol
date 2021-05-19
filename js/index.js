@@ -69,12 +69,11 @@ import("../rust/pkg/rust_wasm_gol.js").then(
     canvas.height = CANVAS_HEIGHT;
     canvas.addEventListener("click", event => {
       const boundingRect = canvas.getBoundingClientRect();
+      console.log(event.clientX, event.clientY);
+      console.log(boundingRect.x, boundingRect.y);
 
-      const scaleX = canvas.width / boundingRect.width;
-      const scaleY = canvas.height / boundingRect.height;
-
-      const xPx = (event.clientX - boundingRect.left) * scaleX;
-      const yPx = (event.clientY - boundingRect.top) * scaleY;
+      const xPx = (event.clientX - boundingRect.left);
+      const yPx = (event.clientY - boundingRect.top);
 
       const xCell = Math.min(Math.floor(xPx / (CELL_SIZE + 1)), width - 1);
       const yCell = Math.min(Math.floor(yPx / (CELL_SIZE + 1)), height - 1);
