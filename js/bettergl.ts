@@ -7,7 +7,7 @@ export class Shader {
     this.shader = shader;
   }
 
-  new(gl: WebGL2RenderingContext, type: GLint, src: string): Shader {
+  static create(gl: WebGL2RenderingContext, type: GLint, src: string): Shader {
     const shader = gl.createShader(type)!;
     gl.shaderSource(shader, src);
     gl.compileShader(shader);
@@ -23,14 +23,14 @@ export class Shader {
 }
 
 export class VertexShader extends Shader {
-  constructor(gl: WebGL2RenderingContext) {
-    super(gl, gl.VERTEX_SHADER);
+  public static new(gl: WebGL2RenderingContext, src: string): VertexShader {
+    return super.create(gl, gl.VERTEX_SHADER, src);
   }
 }
 
 export class FragmentShader extends Shader {
-  constructor(gl: WebGL2RenderingContext) {
-    super(gl, gl.FRAGMENT_SHADER);
+  public static new(gl: WebGL2RenderingContext, src: string): FragmentShader {
+    return super.create(gl, gl.FRAGMENT_SHADER, src);
   }
 }
 
@@ -43,7 +43,7 @@ export class Program {
     this.program = program;
   }
 
-  new(gl: WebGL2RenderingContext, vertexShader: VertexShader, fragmentShader: FragmentShader): Program {
+  public static new(gl: WebGL2RenderingContext, vertexShader: VertexShader, fragmentShader: FragmentShader): Program {
     const program = gl.createProgram()!;
     gl.attachShader(program, vertexShader.shader);
     gl.attachShader(program, fragmentShader.shader);

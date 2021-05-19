@@ -1,6 +1,6 @@
 import { Fps } from "./fps.js";
-import { ShaderProgram, cellVertex, cellFragment, gridVertex, gridFragment } from "./shaders.js";
-import { Program, Buffer, VertexArrayObject, clear, drawArrays, FragmentShader, VertexShader, drawArraysInstanced } from "./bettergl.ts";
+import { ShaderProgram, cellVertex, cellFragment, gridVertex, gridFragment } from "./shaders";
+import { Program, Buffer, VertexArrayObject, clear, drawArrays, FragmentShader, VertexShader, drawArraysInstanced } from "./bettergl";
 
 const fps = new Fps();
 
@@ -8,7 +8,7 @@ const fps = new Fps();
   const { start, Cell, World } = await import("../rust/pkg/rust_wasm_gol.js");
   const { memory } = await import("../rust/pkg/rust_wasm_gol_bg.wasm");
 
-  start(process.env.DEBUG);
+  start(process.env.DEBUG === "true");
 
   const GRID_COLOR = "#CCCCCC";
   const DEAD_COLOR = "#FFFFFF";
@@ -17,7 +17,7 @@ const fps = new Fps();
   const width = world.width();
   const height = world.height();
 
-  const canvas = document.getElementById("gol-canvas");
+  const canvas = <HTMLCanvasElement>document.getElementById("gol-canvas")!;
 
   const devicePixelRatio = window.devicePixelRatio || 1;
   const CELL_SIZE = 5;
@@ -28,7 +28,7 @@ const fps = new Fps();
   // similarly for height
   canvas.style.height = `${height * (CELL_SIZE + 1) + 1}px`;
 
-  const gl = canvas.getContext("webgl2");
+  const gl: WebGL2RenderingContext = canvas.getContext("webgl2")!;
   if (!gl) {
     console.log("failed to get webgl2 context");
   }
@@ -38,10 +38,10 @@ const fps = new Fps();
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
   const gridProgram =
-    new Program(
+    Program.new(
       gl,
-      new VertexShader(gl, (new ShaderProgram([gridVertex])).generate()),
-      new FragmentShader(gl, (new ShaderProgram([gridFragment])).generate())
+      VertexShader.new(gl, (new ShaderProgram([gridVertex])).generate()),
+      FragmentShader.new(gl, (new ShaderProgram([gridFragment])).generate())
     );
 
   const posLocation = gridProgram.getAttribLocation("pos");
@@ -80,7 +80,7 @@ const fps = new Fps();
       for (var y = 0; y < gl.canvas.height; y += (CELL_SIZE + 1) * CANVAS_PIXELS) {
         offsets.push(0, y);
       }
-      console.assert(offsets.length / 2 === height + 1, offsets.height / 2);
+      console.assert(offsets.length / 2 === height + 1, offsets.length / 2);
       boundArrayBuffer.setData(
         new Float32Array(offsets),
         gl.STATIC_DRAW
@@ -144,10 +144,10 @@ const fps = new Fps();
   });
 
   const cellProgram =
-    new Program(
+    Program.new(
       gl,
-      new VertexShader(gl, (new ShaderProgram([cellVertex])).generate()),
-      new FragmentShader(gl, (new ShaderProgram([cellFragment])).generate())
+      VertexShader.new(gl, (new ShaderProgram([cellVertex])).generate()),
+      FragmentShader.new(gl, (new ShaderProgram([cellFragment])).generate())
     );
 
   const cellResolutionLocation = cellProgram.getUniformLocation("resolution");
@@ -232,13 +232,13 @@ const fps = new Fps();
 
   clear(gl, 0, 0, 0, 0);
 
-  const getIndex = (x, y) => {
+  const getIndex = (x: number, y: number) => {
     return y * width + x;
   };
 
   const cells = new Uint8Array(memory.buffer, world.data(), width * height);
 
-  var cellColours = [];
+  var cellColours: number[] = [];
   for (var y = 0; y < height; y++) {
     for (var x = 0; x < width; x++) {
       if (cells[getIndex(x, y)] == Cell.Alive) {
@@ -287,7 +287,7 @@ const fps = new Fps();
     cellsVao.bind((boundVao) => {
       drawArraysInstanced(gl, currentProgram, boundVao, {
         primitive: gl.TRIANGLE_STRIP,
-        first: 0,
+        offset: 0,
         count: 4,
         instanceCount: width * height
       });
