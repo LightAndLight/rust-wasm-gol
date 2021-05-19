@@ -2,29 +2,35 @@ export class Shader {
   gl: WebGL2RenderingContext;
   shader: WebGLShader;
 
-  constructor(gl: WebGL2RenderingContext, type: GLint, src: string) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, src);
-    gl.compileShader(shader);
-    const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-    if (!success) {
-      console.log(gl.getShaderInfoLog(shader));
-      gl.deleteShader(shader);
-    }
+  constructor(gl: WebGL2RenderingContext, shader: WebGLShader) {
     this.gl = gl;
     this.shader = shader;
+  }
+
+  new(gl: WebGL2RenderingContext, type: GLint, src: string): Shader {
+    const shader = gl.createShader(type)!;
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+
+    const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    if (!success) {
+      gl.deleteShader(shader);
+      throw new Error(gl.getShaderInfoLog(shader)!);
+    } else {
+      return new Shader(gl, shader);
+    }
   }
 }
 
 export class VertexShader extends Shader {
-  constructor(gl: WebGL2RenderingContext, src: string) {
-    super(gl, gl.VERTEX_SHADER, src);
+  constructor(gl: WebGL2RenderingContext) {
+    super(gl, gl.VERTEX_SHADER);
   }
 }
 
 export class FragmentShader extends Shader {
-  constructor(gl: WebGL2RenderingContext, src: string) {
-    super(gl, gl.FRAGMENT_SHADER, src);
+  constructor(gl: WebGL2RenderingContext) {
+    super(gl, gl.FRAGMENT_SHADER);
   }
 }
 
@@ -32,18 +38,22 @@ export class Program {
   gl: WebGL2RenderingContext;
   program: WebGLProgram;
 
-  constructor(gl: WebGL2RenderingContext, vertexShader: VertexShader, fragmentShader: FragmentShader) {
-    const program = gl.createProgram();
+  constructor(gl: WebGL2RenderingContext, program: WebGLProgram) {
+    this.gl = gl;
+    this.program = program;
+  }
+
+  new(gl: WebGL2RenderingContext, vertexShader: VertexShader, fragmentShader: FragmentShader): Program {
+    const program = gl.createProgram()!;
     gl.attachShader(program, vertexShader.shader);
     gl.attachShader(program, fragmentShader.shader);
     gl.linkProgram(program);
     const success = gl.getProgramParameter(program, gl.LINK_STATUS);
     if (!success) {
-      console.log(gl.getProgramInfoLog(program));
+      throw new Error(gl.getProgramInfoLog(program)!);
+    } else {
+      return new Program(gl, program);
     }
-
-    this.gl = gl;
-    this.program = program;
   }
 
   use(callback: (currentProgram: UsedProgram) => void): void {
@@ -57,7 +67,12 @@ export class Program {
   }
 
   getUniformLocation(location: string): WebGLUniformLocation {
-    return this.gl.getUniformLocation(this.program, location);
+    const mLocation = this.gl.getUniformLocation(this.program, location);
+    if (mLocation === null) {
+      throw new Error(`location ${location} does not exist`)
+    } else {
+      return mLocation
+    }
   }
 }
 
@@ -83,7 +98,7 @@ export class VertexArrayObject {
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl = gl;
-    this.vao = gl.createVertexArray();
+    this.vao = gl.createVertexArray()!;
   }
 
   bind(callback: (boundVertexArray: BoundVertexArrayObject) => void): void {
@@ -159,7 +174,7 @@ export class Buffer {
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl = gl;
-    this.buffer = gl.createBuffer();
+    this.buffer = gl.createBuffer()!;
   }
 
   bindArrayBuffer(callback: (boundArrayBuffer: BoundArrayBuffer) => void): void {
