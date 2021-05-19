@@ -1,6 +1,10 @@
 export class Fps {
+  fps: HTMLElement;
+  frames: number[];
+  lastFrameTimeStamp: number;
+
   constructor() {
-    this.fps = document.getElementById("fps");
+    this.fps = document.getElementById("fps")!;
     this.frames = [];
     this.lastFrameTimeStamp = performance.now();
   }

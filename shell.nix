@@ -19,7 +19,7 @@ pkgs.mkShell {
     })
   ];
   shellHook = ''
-    ln -s ${nodeDeps}/lib/node_modules ./node_modules
+    ln -sT ${nodeDeps}/lib/node_modules $PWD/node_modules
     export PATH="${nodeDeps}/bin:$PATH"
   '';
 }

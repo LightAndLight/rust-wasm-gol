@@ -1,4 +1,4 @@
-import { Fps } from "./fps.js";
+import { Fps } from "./fps";
 import { ShaderProgram, cellVertex, cellFragment, gridVertex, gridFragment } from "./shaders";
 import { Program, Buffer, VertexArrayObject, clear, drawArrays, FragmentShader, VertexShader, drawArraysInstanced } from "./bettergl";
 
