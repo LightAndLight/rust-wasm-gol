@@ -10,8 +10,9 @@ const fps = new Fps();
 
   start(process.env.DEBUG === "true");
 
-  const GRID_COLOR = "#CCCCCC";
-  const DEAD_COLOR = "#FFFFFF";
+  const GRID_COLOR = { r: 204 / 255, g: 204 / 255, b: 204 / 255 };
+  const ALIVE_COLOR = { r: 0, g: 0, b: 0 };
+  const DEAD_COLOR = { r: 1, g: 1, b: 1 };
 
   const world = World.new();
   const width = world.width();
@@ -23,19 +24,22 @@ const fps = new Fps();
   const CELL_SIZE = 5;
   const CANVAS_PIXELS = devicePixelRatio;
   // width + 1 accounts for the 1px gridlines
-  // canvas.style.width = `${width * CELL_SIZE + width + 1}px`;
-  canvas.style.width = `${width * (CELL_SIZE + 1) + 1}px`;
+  // const CANVAS_WIDTH = (width * CELL_SIZE + width + 1) * CANVAS_PIXELS;
+  const CANVAS_WIDTH = (width * (CELL_SIZE + 1) + 1) * CANVAS_PIXELS;
   // similarly for height
-  canvas.style.height = `${height * (CELL_SIZE + 1) + 1}px`;
+  const CANVAS_HEIGHT = (height * (CELL_SIZE + 1) + 1) * CANVAS_PIXELS;
 
   const gl: WebGL2RenderingContext = canvas.getContext("webgl2")!;
   if (!gl) {
     console.log("failed to get webgl2 context");
   }
 
-  gl.canvas.width = canvas.clientWidth * CANVAS_PIXELS;
-  gl.canvas.height = canvas.clientHeight * CANVAS_PIXELS;
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+  canvas.style.width = `${CANVAS_WIDTH / CANVAS_PIXELS}px`;
+  canvas.style.height = `${CANVAS_HEIGHT / CANVAS_PIXELS}px`;
+  gl.canvas.width = CANVAS_WIDTH;
+  gl.canvas.height = CANVAS_HEIGHT;
+
+  gl.viewport(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
   const gridProgram =
     Program.new(
@@ -60,8 +64,8 @@ const fps = new Fps();
         new Float32Array([
           0, 0,
           0, 1 * CANVAS_PIXELS,
-          gl.canvas.width, 0,
-          gl.canvas.width, 1 * CANVAS_PIXELS
+          CANVAS_WIDTH, 0,
+          CANVAS_WIDTH, 1 * CANVAS_PIXELS
         ]),
         gl.STATIC_DRAW
       );
@@ -77,7 +81,7 @@ const fps = new Fps();
     const horizontalOffsetsBuffer = new Buffer(gl);
     horizontalOffsetsBuffer.bindArrayBuffer((boundArrayBuffer) => {
       var offsets = [];
-      for (var y = 0; y < gl.canvas.height; y += (CELL_SIZE + 1) * CANVAS_PIXELS) {
+      for (var y = 0; y < CANVAS_HEIGHT; y += (CELL_SIZE + 1) * CANVAS_PIXELS) {
         offsets.push(0, y);
       }
       console.assert(offsets.length / 2 === height + 1, offsets.length / 2);
@@ -107,8 +111,8 @@ const fps = new Fps();
         new Float32Array([
           0, 0,
           1 * CANVAS_PIXELS, 0,
-          0, gl.canvas.height,
-          1 * CANVAS_PIXELS, gl.canvas.height
+          0, CANVAS_HEIGHT,
+          1 * CANVAS_PIXELS, CANVAS_HEIGHT
         ]),
         gl.STATIC_DRAW
       );
@@ -124,7 +128,7 @@ const fps = new Fps();
     const verticalOffsetsBuffer = new Buffer(gl);
     verticalOffsetsBuffer.bindArrayBuffer((boundArrayBuffer) => {
       var offsets = [];
-      for (var x = 0; x < gl.canvas.width; x += (CELL_SIZE + 1) * CANVAS_PIXELS) {
+      for (var x = 0; x < CANVAS_WIDTH; x += (CELL_SIZE + 1) * CANVAS_PIXELS) {
         offsets.push(x, 0);
       }
       console.assert(offsets.length / 2 === width + 1, offsets.length / 2);
@@ -153,7 +157,7 @@ const fps = new Fps();
   const cellResolutionLocation = cellProgram.getUniformLocation("resolution");
 
   const cellsVao = new VertexArrayObject(gl);
-  const cellColoursBuffer = new Buffer(gl);
+  const cellColorsBuffer = new Buffer(gl);
 
   cellsVao.bind((boundVao) => {
     const cellPosLocation = cellProgram.getAttribLocation("pos");
@@ -191,8 +195,8 @@ const fps = new Fps();
       // also, after adding CELL_SIZE, the offset would intersect
       // with a 1px-width line. so we add `CELL_SIZE + 1` to jump
       // over the gridline
-      for (var y = 1 * CANVAS_PIXELS; y < gl.canvas.height; y += (CELL_SIZE + 1) * CANVAS_PIXELS) {
-        for (var x = 1 * CANVAS_PIXELS; x < gl.canvas.width; x += (CELL_SIZE + 1) * CANVAS_PIXELS) {
+      for (var y = 1 * CANVAS_PIXELS; y < CANVAS_HEIGHT; y += (CELL_SIZE + 1) * CANVAS_PIXELS) {
+        for (var x = 1 * CANVAS_PIXELS; x < CANVAS_WIDTH; x += (CELL_SIZE + 1) * CANVAS_PIXELS) {
           offsets.push(x, y);
         }
       }
@@ -211,16 +215,16 @@ const fps = new Fps();
       });
     })
 
-    const cellColourLocation = cellProgram.getAttribLocation("colour");
-    boundVao.enableVertexAttribArray(cellColourLocation);
-    boundVao.vertexAttribDivisor(cellColourLocation, 1);
+    const cellColorLocation = cellProgram.getAttribLocation("color");
+    boundVao.enableVertexAttribArray(cellColorLocation);
+    boundVao.vertexAttribDivisor(cellColorLocation, 1);
 
-    cellColoursBuffer.bindArrayBuffer((boundArrayBuffer) => {
+    cellColorsBuffer.bindArrayBuffer((boundArrayBuffer) => {
       boundArrayBuffer.setData(
         new Float32Array(width * height * 3),
         gl.DYNAMIC_DRAW
       );
-      boundVao.vertexAttribPointer(boundArrayBuffer, cellColourLocation, {
+      boundVao.vertexAttribPointer(boundArrayBuffer, cellColorLocation, {
         size: 3,
         type: gl.FLOAT,
         normalize: false,
@@ -230,69 +234,107 @@ const fps = new Fps();
     })
   });
 
-  clear(gl, 0, 0, 0, 0);
+  let animationId: number | null = null;
+  var cellColors: Float32Array = new Float32Array(width * height * 3);
 
-  const getIndex = (x: number, y: number) => {
-    return y * width + x;
-  };
+  const loop = () => {
+    fps.render();
 
-  const cells = new Uint8Array(memory.buffer, world.data(), width * height);
+    const cells = new Uint8Array(memory.buffer, world.data(), width * height);
 
-  var cellColours: number[] = [];
-  for (var y = 0; y < height; y++) {
-    for (var x = 0; x < width; x++) {
-      if (cells[getIndex(x, y)] == Cell.Alive) {
-        cellColours.push(1, 1, 1);
+    for (var ix = 0; ix < cells.length; ix++) {
+      const colorsIx = ix * 3;
+      if (cells[ix] === Cell.Alive) {
+        cellColors[colorsIx] = ALIVE_COLOR.r;
+        cellColors[colorsIx + 1] = ALIVE_COLOR.g;
+        cellColors[colorsIx + 2] = ALIVE_COLOR.b;
       } else {
-        cellColours.push(0, 0, 0);
+        cellColors[colorsIx] = DEAD_COLOR.r;
+        cellColors[colorsIx + 1] = DEAD_COLOR.g;
+        cellColors[colorsIx + 2] = DEAD_COLOR.b;
       }
     }
-  }
 
-  cellColoursBuffer.bindArrayBuffer((boundArrayBuffer) => {
-    boundArrayBuffer.bufferSubData({
-      dstByteOffset: 0,
-      srcData: new Float32Array(cellColours),
-      srcOffset: 0,
-      length: cellColours.length
-    });
-  });
-
-  gridProgram.use((currentProgram) => {
-    currentProgram.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
-    currentProgram.uniform4f(colorLocation, 204 / 255, 204 / 255, 204 / 255, 1);
-
-    horizontalVao.bind((boundVao) => {
-      drawArraysInstanced(gl, currentProgram, boundVao, {
-        primitive: gl.TRIANGLE_STRIP,
-        offset: 0,
-        count: 4,
-        instanceCount: height + 1
+    cellColorsBuffer.bindArrayBuffer((boundArrayBuffer) => {
+      boundArrayBuffer.bufferSubData({
+        dstByteOffset: 0,
+        srcData: cellColors,
+        srcOffset: 0,
+        length: cellColors.length
       });
     });
 
-    verticalVao.bind((boundVao) => {
-      drawArraysInstanced(gl, currentProgram, boundVao, {
-        primitive: gl.TRIANGLE_STRIP,
-        offset: 0,
-        count: 4,
-        instanceCount: width + 1
+    clear(gl, 0, 0, 0, 0);
+
+    gridProgram.use((currentProgram) => {
+      currentProgram.uniform2f(resolutionLocation, CANVAS_WIDTH, CANVAS_HEIGHT);
+      currentProgram.uniform4f(colorLocation, GRID_COLOR.r, GRID_COLOR.g, GRID_COLOR.b, 1);
+
+      horizontalVao.bind((boundVao) => {
+        drawArraysInstanced(gl, currentProgram, boundVao, {
+          primitive: gl.TRIANGLE_STRIP,
+          offset: 0,
+          count: 4,
+          instanceCount: height + 1
+        });
+      });
+
+      verticalVao.bind((boundVao) => {
+        drawArraysInstanced(gl, currentProgram, boundVao, {
+          primitive: gl.TRIANGLE_STRIP,
+          offset: 0,
+          count: 4,
+          instanceCount: width + 1
+        });
       });
     });
+
+    cellProgram.use((currentProgram) => {
+      currentProgram.uniform2f(cellResolutionLocation, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      cellsVao.bind((boundVao) => {
+        drawArraysInstanced(gl, currentProgram, boundVao, {
+          primitive: gl.TRIANGLE_STRIP,
+          offset: 0,
+          count: 4,
+          instanceCount: width * height
+        });
+      })
+    });
+
+    world.tick_js();
+
+    animationId = requestAnimationFrame(loop)
+  };
+
+  const isPaused = () => {
+    return animationId === null;
+  };
+
+  const playPauseButton = document.getElementById("play-pause")!;
+
+  const play = () => {
+    playPauseButton.textContent = "⏸";
+    loop();
+  };
+
+  const pause = () => {
+    playPauseButton.textContent = "▶";
+    if (animationId !== null) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+  };
+
+  playPauseButton.addEventListener("click", _ => {
+    if (isPaused()) {
+      play();
+    } else {
+      pause();
+    }
   });
 
-  cellProgram.use((currentProgram) => {
-    currentProgram.uniform2f(cellResolutionLocation, gl.canvas.width, gl.canvas.height);
-
-    cellsVao.bind((boundVao) => {
-      drawArraysInstanced(gl, currentProgram, boundVao, {
-        primitive: gl.TRIANGLE_STRIP,
-        offset: 0,
-        count: 4,
-        instanceCount: width * height
-      });
-    })
-  });
+  play();
 
   /*
   canvas.addEventListener("click", event => {
@@ -312,111 +354,8 @@ const fps = new Fps();
     drawCells();
   })
   
-  const ctx = canvas.getContext("2d");
   
-  const bottom = (CELL_SIZE + 1) * height + 1;
-  const right = (CELL_SIZE + 1) * width + 1;
   
-  const drawGrid = () => {
-    ctx.beginPath();
-    ctx.strokeStyle = GRID_COLOR;
-  
-    // vertical lines
-    for (let i = 0; i <= width; i++) {
-      const x = i * (CELL_SIZE + 1) + 1;
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, bottom);
-    }
-  
-    // horizontal lines
-    for (let j = 0; j <= height; j++) {
-      const y = j * (CELL_SIZE + 1) + 1
-      ctx.moveTo(0, y);
-      ctx.lineTo(right, y);
-    }
-  
-    ctx.stroke();
-  };
-  
-  const drawCells = () => {
-    const dataPtr = world.data();
-    const cells = new Uint8Array(memory.buffer, dataPtr, width * height);
-  
-    ctx.beginPath();
-  
-    ctx.fillStyle = ALIVE_COLOR;
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const idx = getIndex(x, y);
-  
-        if (cells[idx] === Cell.Alive) {
-          ctx.fillRect(
-            x * (CELL_SIZE + 1) + 1,
-            y * (CELL_SIZE + 1) + 1,
-            CELL_SIZE,
-            CELL_SIZE
-          );
-  
-        }
-      }
-    }
-  
-    ctx.fillStyle = DEAD_COLOR;
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const idx = getIndex(x, y);
-  
-        if (cells[idx] === Cell.Dead) {
-          ctx.fillRect(
-            x * (CELL_SIZE + 1) + 1,
-            y * (CELL_SIZE + 1) + 1,
-            CELL_SIZE,
-            CELL_SIZE
-          );
-  
-        }
-      }
-    }
-  
-    ctx.stroke();
-  };
-  
-  let animationId = null;
-  
-  const loop = () => {
-    fps.render();
-    world.tick_js();
-  
-    drawGrid();
-    drawCells();
-  
-    animationId = requestAnimationFrame(loop)
-  };
-  
-  const isPaused = () => {
-    return animationId === null;
-  };
-  
-  const playPauseButton = document.getElementById("play-pause");
-  
-  const play = () => {
-    playPauseButton.textContent = "⏸";
-    animationId = loop();
-  };
-  
-  const pause = () => {
-    playPauseButton.textContent = "▶";
-    cancelAnimationFrame(animationId);
-    animationId = null;
-  };
-  
-  playPauseButton.addEventListener("click", _ => {
-    if (isPaused()) {
-      play();
-    } else {
-      pause();
-    }
-  });
   
   const resetButton = document.getElementById("reset");
   
@@ -427,8 +366,6 @@ const fps = new Fps();
   resetButton.addEventListener("click", _ => {
     reset();
   });
-  
-  play();
   */
 
 })();
