@@ -58,8 +58,15 @@ import("../rust/pkg/rust_wasm_gol.js").then(
     const height = world.height();
 
     const canvas = document.getElementById("gol-canvas");
-    canvas.width = (CELL_SIZE + 1) * width + 1;
-    canvas.height = (CELL_SIZE + 1) * height + 1;
+    const CANVAS_PIXELS = window.devicePixelRatio || 1;
+    const width_style_pixels = (CELL_SIZE + 1) * width + 1;
+    const height_style_pixels = (CELL_SIZE + 1) * height + 1;
+    const CANVAS_WIDTH = width_style_pixels * CANVAS_PIXELS;
+    const CANVAS_HEIGHT = height_style_pixels * CANVAS_PIXELS;
+    canvas.style.width = `${width_style_pixels}px`;
+    canvas.style.height = `${height_style_pixels}px`;
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
     canvas.addEventListener("click", event => {
       const boundingRect = canvas.getBoundingClientRect();
 
@@ -78,6 +85,8 @@ import("../rust/pkg/rust_wasm_gol.js").then(
     })
 
     const ctx = canvas.getContext("2d");
+    ctx.scale(CANVAS_PIXELS, CANVAS_PIXELS);
+    ctx.lineWidth = CANVAS_PIXELS;
 
     const bottom = (CELL_SIZE + 1) * height + 1;
     const right = (CELL_SIZE + 1) * width + 1;
