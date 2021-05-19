@@ -242,6 +242,7 @@ const fps = new Fps();
 
     const cells = new Uint8Array(memory.buffer, world.data(), width * height);
 
+    console.time("calculate colours");
     for (var ix = 0; ix < cells.length; ix++) {
       const colorsIx = ix * 3;
       if (cells[ix] === Cell.Alive) {
@@ -254,7 +255,9 @@ const fps = new Fps();
         cellColors[colorsIx + 2] = DEAD_COLOR.b;
       }
     }
+    console.timeEnd("calculate colours");
 
+    console.time("upload colours");
     cellColorsBuffer.bindArrayBuffer((boundArrayBuffer) => {
       boundArrayBuffer.bufferSubData({
         dstByteOffset: 0,
@@ -263,9 +266,13 @@ const fps = new Fps();
         length: cellColors.length
       });
     });
+    console.timeEnd("upload colours");
 
+    console.time("clear");
     clear(gl, 0, 0, 0, 0);
+    console.timeEnd("clear");
 
+    console.time("draw grid");
     gridProgram.use((currentProgram) => {
       currentProgram.uniform2f(resolutionLocation, CANVAS_WIDTH, CANVAS_HEIGHT);
       currentProgram.uniform4f(colorLocation, GRID_COLOR.r, GRID_COLOR.g, GRID_COLOR.b, 1);
@@ -288,7 +295,9 @@ const fps = new Fps();
         });
       });
     });
+    console.timeEnd("draw grid");
 
+    console.time("draw cells");
     cellProgram.use((currentProgram) => {
       currentProgram.uniform2f(cellResolutionLocation, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -301,8 +310,11 @@ const fps = new Fps();
         });
       })
     });
+    console.timeEnd("draw cells");
 
+    console.time("tick");
     world.tick_js();
+    console.timeEnd("tick");
 
     animationId = requestAnimationFrame(loop)
   };
