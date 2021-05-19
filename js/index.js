@@ -1,6 +1,6 @@
 import { Fps } from "./fps.js";
 import { ShaderProgram, cellVertex, cellFragment, gridVertex, gridFragment } from "./shaders.js";
-import { Program, Buffer, VertexArrayObject, clear, drawArrays, FragmentShader, VertexShader, drawArraysInstanced } from "./bettergl.js";
+import { Program, Buffer, VertexArrayObject, clear, drawArrays, FragmentShader, VertexShader, drawArraysInstanced } from "./bettergl.ts";
 
 const fps = new Fps();
 

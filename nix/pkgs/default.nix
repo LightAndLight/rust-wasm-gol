@@ -13,5 +13,9 @@ let
       rev = "8c007b60731c07dd7a052cce508de3bb1ae849b4"; # 2021-04-08
     in
       import (builtins.fetchTarball "https://github.com/mozilla/nixpkgs-mozilla/archive/${rev}.tar.gz");
+
+  nodeOverlay = self: super: {
+    nodePackages = super.nodePackages // (import ./node { pkgs = self; });
+  };
 in
-  import nixpkgs (args // { overlays = (args.overlays or []) ++ [ mozilla-overlay ]; })
+  import nixpkgs (args // { overlays = (args.overlays or []) ++ [ mozilla-overlay nodeOverlay ]; })
