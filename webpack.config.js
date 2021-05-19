@@ -7,7 +7,7 @@ const dist = path.resolve(__dirname, "dist");
 module.exports = (env) => {
   return {
     mode: env.development ? "development" : "production",
-    devtool: env.development ? "inline-source-map" : null,
+    devtool: env.development ? "inline-source-map" : false,
     entry: {
       index: "./js/index.ts"
     },
@@ -20,9 +20,6 @@ module.exports = (env) => {
           ]
         },
       ],
-    },
-    resolveLoader: {
-      modules: process.env.NODE_PATH.split(":")
     },
     resolve: {
       extensions: [".tsx", ".ts", ".js"],

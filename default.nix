@@ -1,7 +1,8 @@
-{ pkgs ? import ./nix/pkgs {} }:
+{ pkgs ? import ./nix/pkgs {}, release ? true }:
 let          
   html = import ./html { inherit pkgs; };
-  rust = import ./rust { inherit pkgs; };
+  rust = import ./rust { inherit pkgs release; };
+  nodeDeps = (import ./nix/node { inherit pkgs; }).nodeDependencies;
 in pkgs.stdenv.mkDerivation {
   name = "game-of-life-site";
   src = pkgs.nix-gitignore.gitignoreSource ["scripts/" "nix/" "html/" "rust/" "README.md" "default.nix" "shell.nix"] ./.;
@@ -13,14 +14,14 @@ in pkgs.stdenv.mkDerivation {
   
   buildInputs = with pkgs; [
     binaryen
-    nodePackages.npm
-    nodePackages.webpack-cli
     
     (import ./scripts { inherit pkgs; })
   ];
-  NODE_PATH="${pkgs.nodePackages.webpack}/lib/node_modules:${pkgs.nodePackages.copy-webpack-plugin}/lib/node_modules";
   buildPhase = ''
-    webpack_build
+    ln -s ${nodeDeps}/lib/node_modules ./node_modules
+    export PATH="${nodeDeps}/bin:$PATH"
+    
+    webpack_build ${if release then "" else "--env development"}
   '';
   
   installPhase = ''
