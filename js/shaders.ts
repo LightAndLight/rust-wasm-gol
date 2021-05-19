@@ -1,42 +1,46 @@
-export class ShaderSource {
+export abstract class ShaderSource {
   static GLSL_VERSION = "300 es";
 
-  generate() {
-    console.error("unimplemented");
-    return undefined;
-  }
+  abstract read(): { deps: Record<string, ShaderPart>, srcs: string[] }
 }
 
 export class ShaderPart extends ShaderSource {
-  constructor(deps, src) {
+  deps: Record<string, ShaderPart>;
+  src: string;
+
+  constructor(deps: Record<string, ShaderPart>, src: string) {
     super();
     this.deps = deps;
     this.src = src;
   }
 
-  read() {
+  read(): { deps: Record<string, ShaderPart>, srcs: string[] } {
     return { deps: this.deps, srcs: [this.src] };
   }
 }
 
-const generateDeps = (deps) =>
-  Object.values(deps).flatMap(dep => {
+function generateDeps(deps: Record<string, ShaderPart>): string[] {
+  return Object.values(deps).flatMap(dep => {
     const { deps: depDeps, srcs: depSrcs } = dep.read();
     var generated = generateDeps(depDeps);
-    generated.push(depSrcs);
-    return generated
+    generated.push(...depSrcs);
+    return generated;
   });
+}
 
 export class ShaderProgram extends ShaderSource {
-  constructor(srcs) {
+  version: string
+  srcs: ShaderPart[]
+
+  constructor(srcs: ShaderPart[]) {
     super();
     this.version = ShaderSource.GLSL_VERSION;
     this.srcs = srcs;
   }
 
-  read() {
-    var deps = {};
-    var srcs = [];
+  read(): { deps: Record<string, ShaderPart>, srcs: string[] } {
+    var deps: Record<string, ShaderPart> = {};
+    var srcs: string[] = [];
     this.srcs.forEach(src => {
       const { deps: srcDeps, srcs: srcCode } = src.read();
       deps = { ...deps, ...srcDeps };
@@ -45,7 +49,7 @@ export class ShaderProgram extends ShaderSource {
     return { deps, srcs };
   }
 
-  generate() {
+  generate(): string {
     const { deps, srcs } = this.read();
     return `#version ${this.version}\n\n${generateDeps(deps).join("\n")}\n\n${srcs.join("\n")}`;
   }
