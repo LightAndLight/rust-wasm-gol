@@ -1,9 +1,9 @@
 use std::fmt;
 
-use timer::Timer;
+// use timer::Timer;
 use wasm_bindgen::prelude::*;
 
-mod timer;
+pub mod timer;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
