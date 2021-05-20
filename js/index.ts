@@ -234,12 +234,34 @@ const fps = new Fps();
     })
   });
 
-  let animationId: number | null = null;
-  var cellColors: Float32Array = new Float32Array(width * height * 3);
+  const drawGrid = () => {
+    console.time("draw grid");
+    gridProgram.use((currentProgram) => {
+      currentProgram.uniform2f(resolutionLocation, CANVAS_WIDTH, CANVAS_HEIGHT);
+      currentProgram.uniform4f(colorLocation, GRID_COLOR.r, GRID_COLOR.g, GRID_COLOR.b, 1);
 
-  const loop = () => {
-    fps.render();
+      horizontalVao.bind((boundVao) => {
+        drawArraysInstanced(gl, currentProgram, boundVao, {
+          primitive: gl.TRIANGLE_STRIP,
+          offset: 0,
+          count: 4,
+          instanceCount: height + 1
+        });
+      });
 
+      verticalVao.bind((boundVao) => {
+        drawArraysInstanced(gl, currentProgram, boundVao, {
+          primitive: gl.TRIANGLE_STRIP,
+          offset: 0,
+          count: 4,
+          instanceCount: width + 1
+        });
+      });
+    });
+    console.timeEnd("draw grid");
+  };
+
+  const drawCells = () => {
     const cells = new Uint8Array(memory.buffer, world.data(), width * height);
 
     console.time("calculate colours");
@@ -268,35 +290,6 @@ const fps = new Fps();
     });
     console.timeEnd("upload colours");
 
-    console.time("clear");
-    clear(gl, 0, 0, 0, 0);
-    console.timeEnd("clear");
-
-    console.time("draw grid");
-    gridProgram.use((currentProgram) => {
-      currentProgram.uniform2f(resolutionLocation, CANVAS_WIDTH, CANVAS_HEIGHT);
-      currentProgram.uniform4f(colorLocation, GRID_COLOR.r, GRID_COLOR.g, GRID_COLOR.b, 1);
-
-      horizontalVao.bind((boundVao) => {
-        drawArraysInstanced(gl, currentProgram, boundVao, {
-          primitive: gl.TRIANGLE_STRIP,
-          offset: 0,
-          count: 4,
-          instanceCount: height + 1
-        });
-      });
-
-      verticalVao.bind((boundVao) => {
-        drawArraysInstanced(gl, currentProgram, boundVao, {
-          primitive: gl.TRIANGLE_STRIP,
-          offset: 0,
-          count: 4,
-          instanceCount: width + 1
-        });
-      });
-    });
-    console.timeEnd("draw grid");
-
     console.time("draw cells");
     cellProgram.use((currentProgram) => {
       currentProgram.uniform2f(cellResolutionLocation, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -311,6 +304,35 @@ const fps = new Fps();
       })
     });
     console.timeEnd("draw cells");
+  };
+
+  const draw = () => {
+    clear(gl, 0, 0, 0, 0);
+    drawGrid();
+    drawCells();
+  };
+
+  canvas.addEventListener("click", event => {
+    const boundingRect = canvas.getBoundingClientRect();
+
+    const xClickPx = (event.clientX - boundingRect.x);
+    const yClickPx = (event.clientY - boundingRect.y);
+
+    const xCell = Math.floor(xClickPx / (CELL_SIZE + 1));
+    const yCell = Math.floor(yClickPx / (CELL_SIZE + 1));
+
+    world.toggle_cell(xCell, yCell);
+
+    draw();
+  });
+
+  let animationId: number | null = null;
+  var cellColors: Float32Array = new Float32Array(width * height * 3);
+
+  const loop = () => {
+    fps.render();
+
+    draw();
 
     console.time("tick");
     world.tick_js();
@@ -335,6 +357,8 @@ const fps = new Fps();
     if (animationId !== null) {
       cancelAnimationFrame(animationId);
       animationId = null;
+
+      draw();
     }
   };
 
@@ -349,22 +373,6 @@ const fps = new Fps();
   play();
 
   /*
-  canvas.addEventListener("click", event => {
-    const boundingRect = canvas.getBoundingClientRect();
-  
-    const scaleX = canvas.width / boundingRect.width;
-    const scaleY = canvas.height / boundingRect.height;
-  
-    const xPx = (event.clientX - boundingRect.left) * scaleX;
-    const yPx = (event.clientY - boundingRect.top) * scaleY;
-  
-    const xCell = Math.min(Math.floor(xPx / (CELL_SIZE + 1)), width - 1);
-    const yCell = Math.min(Math.floor(yPx / (CELL_SIZE + 1)), height - 1);
-  
-    world.toggle_cell(xCell, yCell);
-    drawGrid();
-    drawCells();
-  })
   
   
   
