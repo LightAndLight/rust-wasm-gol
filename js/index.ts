@@ -370,22 +370,19 @@ const fps = new Fps();
     }
   });
 
-  play();
+  const resetButton = document.getElementById("reset")!;
 
-  /*
-  
-  
-  
-  
-  const resetButton = document.getElementById("reset");
-  
   const reset = () => {
     world.clear();
   };
-  
+
   resetButton.addEventListener("click", _ => {
     reset();
+    if (isPaused()) {
+      draw();
+    }
   });
-  */
+
+  play();
 
 })();
