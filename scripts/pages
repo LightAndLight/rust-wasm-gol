@@ -1,0 +1,12 @@
+#! /usr/bin/env bash 
+
+echo "Rebuilding pages..."
+rm -rf docs/ dist/
+
+./scripts/build
+
+mv dist docs
+
+echo "Committing..."
+git add docs
+git commit -m "rebuild github pages"
