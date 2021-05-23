@@ -1,9 +1,9 @@
 use std::fmt;
 
-use timer::Timer;
+// use timer::Timer;
 use wasm_bindgen::prelude::*;
 
-mod timer;
+pub mod timer;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -113,7 +113,7 @@ impl World {
     }
 
     pub fn tick(&mut self) {
-        let _timer = Timer::new("World::tick");
+        // let _timer = Timer::new("World::tick");
 
         {
             fn modulo(a: u32, max: u32) -> u32 {
@@ -124,7 +124,7 @@ impl World {
                 }
             }
 
-            let _timer = Timer::new("update next_data");
+            // let _timer = Timer::new("update next_data");
 
             for y in 0..self.height {
                 let top = if y >= 1 { y - 1 } else { y + self.height - 1 };
@@ -156,7 +156,7 @@ impl World {
         }
 
         {
-            let _timer = Timer::new("free old cells");
+            // let _timer = Timer::new("free old cells");
             self.swap_buffers();
         }
     }

@@ -7,8 +7,22 @@ const dist = path.resolve(__dirname, "dist");
 module.exports = (env) => {
   return {
     mode: env.development ? "development" : "production",
+    devtool: env.development ? "inline-source-map" : false,
     entry: {
-      index: "./js/index.js"
+      index: "./js/index.ts"
+    },
+    module: {
+      rules: [
+        {
+          test: /\.tsx?$/,
+          use: [
+            "ts-loader"
+          ]
+        },
+      ],
+    },
+    resolve: {
+      extensions: [".tsx", ".ts", ".js"],
     },
     output: {
       path: dist,
@@ -25,7 +39,7 @@ module.exports = (env) => {
       })
     ],
     experiments: {
-      asyncWebAssembly: true
+      syncWebAssembly: true
     }
   }
 };

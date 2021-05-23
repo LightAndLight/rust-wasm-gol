@@ -1,0 +1,9 @@
+#! /usr/bin/env bash
+
+mv node_modules node_modules.renamed
+cd nix/node
+
+node2nix -i ../../package.json -l ../../package-lock.json --development
+
+cd ../../
+mv node_modules.renamed node_modules

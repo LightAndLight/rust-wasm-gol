@@ -1,17 +1,25 @@
 { pkgs ? import ./nix/pkgs {} }:
+let
+  nodeDeps = (import ./nix/node { inherit pkgs; }).nodeDependencies;
+in
 pkgs.mkShell {
-  NODE_PATH="${pkgs.nodePackages.webpack}/lib/node_modules:${pkgs.nodePackages.copy-webpack-plugin}/lib/node_modules";
   buildInputs = with pkgs; [
     binaryen
     chromium
     chromedriver
+    wasm-bindgen-cli
     wasm-pack
     wabt
     nodePackages.npm
-    nodePackages.webpack-cli
+    nodePackages.node2nix
+    nodejs
     python3
     (pkgs.latest.rustChannels.stable.rust.override {
       targets = ["wasm32-unknown-unknown"];
     })
   ];
+  shellHook = ''
+    ln -sT ${nodeDeps}/lib/node_modules $PWD/node_modules
+    export PATH="${nodeDeps}/bin:$PATH"
+  '';
 }
