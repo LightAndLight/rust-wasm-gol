@@ -1,0 +1,8 @@
+#! /usr/bin/env bash
+set -euo pipefail
+
+cd rust
+./scripts/wasm_pack_build
+
+cd ../
+./scripts/webpack_build

@@ -1,9 +1,5 @@
 #! /usr/bin/env bash
 set -euo pipefail
 
-cd rust
-./scripts/wasm_pack_build --debug
-
-cd ../
-./scripts/webpack_build --env development
+./scripts/build
 ./scripts/serve dist 8000
